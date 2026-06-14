@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sales Attainment Viewer</title>
+    <title>Sales Attainment Viewer v84</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* テーマごとの背景色設定 */
@@ -220,7 +220,7 @@
                 </button>
                 <div id="titleArea" class="cursor-pointer hover:bg-black/5 active:scale-95 transition-all p-1.5 rounded-lg select-none">
                     <h1 id="talkTitle" class="font-bold text-base leading-tight">Line Talk Viewer</h1>
-                    <p id="talkSub" class="text-[10px] sub-blue leading-none mt-0.5">未連携</p>
+                    <p id="talkSub" class="text-[10px] sub-blue leading-none mt-0.5">待機中</p>
                 </div>
             </div>
             
@@ -234,15 +234,15 @@
                 </button>
                 
                 <div id="calendarWrapper" class="relative hidden w-10 h-10">
-    <input type="date" id="jumpDatePicker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="日付を指定してジャンプ">
-    <button id="calendarBtn" class="w-full h-full p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition pointer-events-none">
-        <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="5" width="18" height="16" rx="4"></rect>
-            <path d="M8 2v4M16 2v4"></path>
-            <text x="12" y="17" font-size="9" font-family="sans-serif" font-weight="bold" text-anchor="middle" fill="currentColor" stroke="none">31</text>
-        </svg>
-    </button>
-</div>
+                    <input type="date" id="jumpDatePicker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="日付を指定してジャンプ">
+                    <button id="calendarBtn" class="w-full h-full p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition pointer-events-none">
+                        <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="16" rx="4"></rect>
+                            <path d="M8 2v4M16 2v4"></path>
+                            <text x="12" y="17" font-size="9" font-family="sans-serif" font-weight="bold" text-anchor="middle" fill="currentColor" stroke="none">31</text>
+                        </svg>
+                    </button>
+                </div>
 
                 <button id="menuBtn" class="w-10 h-10 p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition cursor-pointer z-10">
                     <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +265,7 @@
             
             <main id="chatContainer" class="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-blue h-full w-full relative">
                 <div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner">
-                    <p class="font-bold mb-1">Google Drive & LINE Viewer v82</p>
+                    <p class="font-bold mb-1">Google Drive & LINE Viewer v84</p>
                     <p id="guideText" class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークファイルを結合してください。</p>
                 </div>
             </main>
@@ -280,12 +280,9 @@
                 
                 <div class="p-4 flex-1 overflow-y-auto space-y-4 text-sm flex flex-col min-h-0">
                     <div class="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex-shrink-0">
-                        <label class="block text-xs font-bold text-blue-700">クラウド連携（Google Drive）</label>
-                        <button id="authBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
-                            Googleドライブと連携する
-                        </button>
-                        <button id="logoutBtn" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs py-1.5 px-3 rounded font-medium shadow-sm transition hidden cursor-pointer">
-                            連携を解除する
+                        <label class="block text-xs font-bold text-blue-700">クラウド連携（GAS Permanent）</label>
+                        <button id="authBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
+                            🔄 ドライブを再読み込み
                         </button>
                         
                         <div id="driveExplorerZone" class="space-y-1.5 pt-1 flex flex-col min-h-0">
@@ -297,7 +294,7 @@
                                 ⚡ このフォルダ内のトークをすべて結合
                             </button>
                             <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
-                                <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">連携するとフォルダが表示されます</p>
+                                <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
                             </div>
                         </div>
                     </div>
@@ -338,13 +335,10 @@
         </div>
     </div>
 
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoadedTrig()" async defer></script>
-
     <script>
-        const CLIENT_ID = '903007987907-ctng3cio3hdiedu6ckimvtgkf1d5uq6s.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        // --- GAS API Config ---
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVgfcS43_y4H7jT56H5LeuVRQdh9kOe5zawYL2RXvQbtvKbE26397QqmmZiEYs2urU/exec';
+        const SECRET_KEY = 'my_secret_key_123'; // GAS側で設定したキーと同じもの
 
         const DEFAULT_PARTNER_AVATAR = "default.png";
 
@@ -369,7 +363,6 @@
 
         let isCamouflageMode = false;
         let actualPartnerNames = "Line Talk Viewer"; 
-        let isGapiClientReady = false; 
 
         let partnerCustomAvatarUrl = "";
 
@@ -379,6 +372,21 @@
         let isCurrentlyAuthenticated = false; 
         let isProcessingBiometrics = false; 
 
+        // --- GAS Fetcher Function ---
+        async function fetchFromGas(action, params = {}) {
+            let url = new URL(GAS_URL);
+            url.searchParams.append("key", SECRET_KEY);
+            url.searchParams.append("action", action);
+            for (let k in params) {
+                url.searchParams.append(k, params[k]);
+            }
+            const res = await fetch(url.toString(), { redirect: "follow" });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            return data;
+        }
+
+        // --- Biometrics & Security ---
         function bufferToBase64Url(buffer) {
             return btoa(String.fromCharCode(...new Uint8Array(buffer)))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -392,16 +400,13 @@
             return buffer.buffer;
         }
 
-        // --- 強制ステルス関数 ---
         function forceLockScreen() {
             isCurrentlyAuthenticated = false;
             let lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
-                // 最速でOpacityを1にし、タッチをブロックする
                 lockScreen.classList.remove('stealth-layer-standby');
                 lockScreen.classList.add('stealth-layer-active');
                 
-                // 裏側でUIを通常ロック画面にリセットしておく（ダミーから戻るため）
                 getEl('lockMainZone').classList.remove('hidden');
                 getEl('lockMainZone').style.display = 'block';
                 getEl('dummyDataZone').classList.add('hidden');
@@ -437,13 +442,10 @@
                 await navigator.credentials.get({ publicKey: publicKeyCredentialRequestOptions });
                 
                 if (targetMode === 'dummy') {
-                    // ステルスレイヤーはアクティブなまま、中身だけダミーUIに切り替える
                     getEl('lockMainZone').classList.add('hidden');
                     getEl('lockMainZone').style.display = 'none';
-                    
                     getEl('dummyDataZone').classList.remove('hidden');
                     getEl('dummyDataZone').style.display = 'flex';
-                    
                     isCurrentlyAuthenticated = false; 
                 } else if (targetMode === 'real') {
                     unlockScreen();
@@ -498,59 +500,28 @@
             
             const lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
-                // アンロック時はスムーズに消すために一時的にtransitionを追加
                 lockScreen.style.transition = 'opacity 0.3s ease-out';
                 lockScreen.classList.remove('stealth-layer-active');
                 lockScreen.classList.add('stealth-layer-standby');
                 
                 setTimeout(() => { 
-                    lockScreen.style.transition = 'none'; // 即時アニメーション無効に戻す
+                    lockScreen.style.transition = 'none'; 
                     autoCheckNewFiles();
                 }, 300);
             }
         }
 
-        // --- 強力なバックグラウンド移行検知 ---
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') forceLockScreen(); 
-        });
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') forceLockScreen(); });
         window.addEventListener('pagehide', () => forceLockScreen());
-        document.addEventListener('freeze', () => forceLockScreen()); // 最新ブラウザ用
+        document.addEventListener('freeze', () => forceLockScreen()); 
+        window.addEventListener('blur', () => { if (!isProcessingBiometrics) forceLockScreen(); });
+        window.addEventListener('focus', () => { if (!isCurrentlyAuthenticated && !isProcessingBiometrics) forceLockScreen(); });
+        window.addEventListener('pageshow', (e) => { if (e.persisted && !isCurrentlyAuthenticated) forceLockScreen(); });
+        document.addEventListener('touchcancel', () => { if (!isProcessingBiometrics) forceLockScreen(); }, { passive: true });
+        document.addEventListener('mouseleave', (e) => { if (e.clientY <= 0 || e.clientY >= window.innerHeight - 10) { if (!isProcessingBiometrics) forceLockScreen(); } });
+        window.addEventListener('popstate', () => { if (!isProcessingBiometrics) forceLockScreen(); });
 
-        window.addEventListener('blur', () => {
-            // 生体認証のプロンプト表示時以外は即隠す
-            if (!isProcessingBiometrics) forceLockScreen();
-        });
-
-        window.addEventListener('focus', () => {
-            if (!isCurrentlyAuthenticated && !isProcessingBiometrics) forceLockScreen();
-        });
-
-        window.addEventListener('pageshow', (e) => {
-            // bfcache(戻るボタン)からの復帰時
-            if (e.persisted && !isCurrentlyAuthenticated) forceLockScreen();
-        });
-
-        // --- 予測防御ハック（OSのスクショより早く動くための裏技） ---
-
-        // 1. タッチキャンセル検知（iOSのホームスワイプ等で発火する確率が高い）
-        document.addEventListener('touchcancel', () => {
-            if (!isProcessingBiometrics) forceLockScreen();
-        }, { passive: true });
-
-        // 2. 画面外へのポインター離脱検知（上部のURLバーや、画面外へのスワイプを検知）
-        document.addEventListener('mouseleave', (e) => {
-            // 上方向（URLバーや通知センター）または下方向（ホームバー）への離脱を検知
-            if (e.clientY <= 0 || e.clientY >= window.innerHeight - 10) {
-                if (!isProcessingBiometrics) forceLockScreen();
-            }
-        });
-
-        // 3. 戻る・進む操作の予測検知（ブラウザのUI操作によるスクショ対策）
-        window.addEventListener('popstate', () => {
-            if (!isProcessingBiometrics) forceLockScreen();
-        });
-
+        // --- Core UI Functions ---
         function toggleDrawer(show) {
             const drawer = getEl('drawerMenu');
             const overlay = getEl('overlay');
@@ -597,17 +568,16 @@
             isCamouflageMode = false;
             applyTitle();
             
-            const token = localStorage.getItem('drive_access_token');
             const sub = getEl('talkSub');
             if (sub) {
-                sub.innerText = token ? "フォルダを探してください" : "未連携";
+                sub.innerText = "待機中";
             }
 
             const container = getEl('chatContainer');
             if (container) {
                 container.innerHTML = `
                     <div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner">
-                        <p class="font-bold mb-1">Google Drive & LINE Viewer v82</p>
+                        <p class="font-bold mb-1">Google Drive & LINE Viewer v84</p>
                         <p id="guideText" class="text-xs text-white/80">
                             表示をリセットしました。トークを確認するには右上のメニューからフォルダまたはファイルを再選択してください。
                         </p>
@@ -621,50 +591,32 @@
             const closeBtn = getEl('closeMenuBtn');
             const overlay = getEl('overlay');
 
-            const openMenu = (e) => {
-                if (e) { e.preventDefault(); e.stopPropagation(); }
-                toggleDrawer(true);
-            };
-
-            const closeMenu = (e) => {
-                if (e) { e.preventDefault(); e.stopPropagation(); }
-                toggleDrawer(false);
-            };
+            const openMenu = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } toggleDrawer(true); };
+            const closeMenu = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } toggleDrawer(false); };
 
             if (menuBtn) {
-                menuBtn.onclick = null;
-                menuBtn.removeEventListener('click', openMenu);
-                menuBtn.removeEventListener('touchend', openMenu);
-                menuBtn.addEventListener('click', openMenu);
-                menuBtn.addEventListener('touchend', openMenu);
+                menuBtn.onclick = null; menuBtn.removeEventListener('click', openMenu); menuBtn.removeEventListener('touchend', openMenu);
+                menuBtn.addEventListener('click', openMenu); menuBtn.addEventListener('touchend', openMenu);
             }
 
             if (closeBtn) {
-                closeBtn.onclick = null;
-                closeBtn.removeEventListener('click', closeMenu);
-                closeBtn.removeEventListener('touchend', closeMenu);
-                closeBtn.addEventListener('click', closeMenu);
-                closeBtn.addEventListener('touchend', closeMenu);
+                closeBtn.onclick = null; closeBtn.removeEventListener('click', closeMenu); closeBtn.removeEventListener('touchend', closeMenu);
+                closeBtn.addEventListener('click', closeMenu); closeBtn.addEventListener('touchend', closeMenu);
             }
 
             if (overlay) {
-                overlay.onclick = null;
-                overlay.removeEventListener('click', closeMenu);
-                overlay.removeEventListener('touchend', closeMenu);
-                overlay.addEventListener('click', closeMenu);
-                overlay.addEventListener('touchend', closeMenu);
+                overlay.onclick = null; overlay.removeEventListener('click', closeMenu); overlay.removeEventListener('touchend', closeMenu);
+                overlay.addEventListener('click', closeMenu); overlay.addEventListener('touchend', closeMenu);
             }
         }
 
-        document.addEventListener("click", (e) => {
+        document.addEventListener("click", async (e) => {
             const targetId = e.target.id;
             
             if (targetId === "menuBtn" || e.target.closest("#menuBtn")) return;
 
             if (targetId === "backBtn" || e.target.closest("#backBtn")) {
-                e.preventDefault();
-                returnToInitialWelcome();
-                return;
+                e.preventDefault(); returnToInitialWelcome(); return;
             }
 
             if (targetId === "searchToggleBtn" || e.target.closest("#searchToggleBtn")) { toggleHeaderBox(); return; }
@@ -689,10 +641,16 @@
             if (targetId === "size-sm") changeFontSize('sm');
             if (targetId === "size-md") changeFontSize('md');
             if (targetId === "size-lg") changeFontSize('lg');
-            if (targetId === "authBtn") triggerAuth();
-            if (targetId === "logoutBtn") triggerLogout();
             if (targetId === "batchLoadBtn") triggerBatchLoad();
             if (targetId === "searchBtn") triggerSearch();
+
+            if (targetId === "authBtn") {
+                const btn = getEl('authBtn');
+                btn.innerText = "↻ 読み込み中...";
+                await renderExplorer(currentFolderId);
+                await autoCheckNewFiles();
+                btn.innerText = "🔄 ドライブを再読み込み";
+            }
         });
 
         window.addEventListener("DOMContentLoaded", () => {
@@ -766,166 +724,27 @@
             }
 
             openDbAndLoad();
-            attemptInit();
+            
+            // Initial Load from GAS
+            const trackedHistory = localStorage.getItem('tracked_folder_history');
+            if (trackedHistory) {
+                folderHistory = JSON.parse(trackedHistory);
+                renderExplorer(folderHistory[folderHistory.length - 1].id);
+            } else {
+                renderExplorer('root'); 
+            }
         });
 
-        function gapiLoadedTrig() { 
-            attemptInit(); 
-        }
-        
-        function attemptInit() {
-            if (typeof gapi === 'undefined' || typeof gapi.load === 'undefined') return;
-            if (isGapiClientReady) return;
-
-            isGapiClientReady = true;
-            gapi.load('client', async () => {
-                try {
-                    await gapi.client.init({}); 
-                    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
-                    
-                    const hash = window.location.hash;
-                    if (hash && hash.includes('access_token')) {
-                        const params = new URLSearchParams(hash.substring(1)); 
-                        const token = params.get('access_token'); 
-                        const expires = params.get('expires_in');
-                        
-                        if (token) {
-                            localStorage.setItem('drive_access_token', token); 
-                            localStorage.setItem('drive_token_expiry', Date.now() + (parseInt(expires, 10) * 1000));
-                            gapi.client.setToken({ access_token: token }); 
-                            window.location.hash = ""; 
-                            setAuthSuccess(); 
-                            
-                            const trackedHistory = localStorage.getItem('tracked_folder_history');
-                            if (trackedHistory) {
-                                folderHistory = JSON.parse(trackedHistory);
-                                renderExplorer(folderHistory[folderHistory.length - 1].id);
-                            } else {
-                                renderExplorer('root'); 
-                            }
-                            autoCheckNewFiles(); 
-                            return;
-                        }
-                    }
-
-                    const t = localStorage.getItem('drive_access_token'); 
-                    const exp = localStorage.getItem('drive_token_expiry');
-                    if (t && exp && Date.now() < parseInt(exp, 10)) {
-                        gapi.client.setToken({ access_token: t }); 
-                        setAuthSuccess();
-                        
-                        const trackedHistory = localStorage.getItem('tracked_folder_history');
-                        if (trackedHistory) {
-                            folderHistory = JSON.parse(trackedHistory);
-                            renderExplorer(folderHistory[folderHistory.length - 1].id);
-                        } else {
-                            const history = localStorage.getItem('explorer_folder_history');
-                            if (history) { 
-                                folderHistory = JSON.parse(history); 
-                                renderExplorer(folderHistory[folderHistory.length - 1].id); 
-                            } else { 
-                                renderExplorer('root'); 
-                            }
-                        }
-                        autoCheckNewFiles(); 
-                        return;
-                    }
-                    
-                    if (globalMessages.length === 0) clearAuthUi();
-
-                } catch (err) {
-                    console.error("GAPI initialization error:", err);
-                    isGapiClientReady = false;
-                }
-            });
-        }
-
-        function triggerAuth() { 
-            window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}&prompt=consent`; 
-        }
-
-        function triggerLogout() {
-            const t = localStorage.getItem('drive_access_token'); 
-            if (t && typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) { 
-                try { google.accounts.oauth2.revokeToken(t, () => {}); } catch(e){}
-            }
-            localStorage.removeItem('drive_access_token'); 
-            localStorage.removeItem('drive_token_expiry'); 
-            localStorage.removeItem('explorer_folder_history'); 
-            localStorage.removeItem('cached_me_user');
-            localStorage.removeItem('tracked_folder_id');
-            localStorage.removeItem('tracked_file_ids');
-            localStorage.removeItem('tracked_folder_history');
-            localStorage.removeItem('tracked_image_id');
-            
-            if (typeof gapi !== 'undefined' && gapi.client) gapi.client.setToken(null); 
-            clearCache();
-            
-            globalMessages = []; filteredMessages = []; globalSenders = []; currentMe = ""; 
-            partnerCustomAvatarUrl = "";
-            hasDriveCustomImage = false;
-            clearAuthUi();
-            if (getEl('calendarWrapper')) getEl('calendarWrapper').classList.add('hidden');
-            if (getEl('searchToggleBtn')) getEl('searchToggleBtn').classList.add('hidden');
-            toggleHeaderBox(false);
-            if (getEl('chatContainer')) { 
-                getEl('chatContainer').innerHTML = `<div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner"><p class="font-bold mb-1">Google Drive & LINE Viewer v82</p><p class="text-xs text-white/80">内部キャッシュデータを完全消去しました。</p></div>`; 
-            }
-            actualPartnerNames = "Line Talk Viewer"; 
-            isCamouflageMode = false;
-            applyTitle();
-            if (getEl('talkSub')) getEl('talkSub').innerText = "未連携";
-            alert("連携情報を完全に削除しました。"); 
-            toggleDrawer(false);
-        }
-
-        function setAuthSuccess() {
-            const btn = getEl('authBtn');
-            if (btn) { 
-                btn.innerText = "✓ 連携完了"; 
-                btn.className = "w-full bg-emerald-600 text-white text-xs py-2 px-3 rounded font-bold shadow-sm select-none pointer-events-none"; 
-            }
-            const lBtn = getEl('logoutBtn');
-            if (lBtn) lBtn.classList.remove('hidden');
-            const guide = getEl('guideText');
-            if (globalMessages.length === 0 && guide) {
-                guide.innerText = "自動ログイン成功！フォルダを選択してください。";
-                const sub = getEl('talkSub');
-                if (sub) sub.innerText = "フォルダを探してください";
-            }
-        }
-
-        function clearAuthUi() {
-            const btn = getEl('authBtn');
-            if (btn) { 
-                btn.innerText = "Googleドライブと連携する"; 
-                btn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer"; 
-            }
-            const lBtn = getEl('logoutBtn');
-            if (lBtn) lBtn.classList.add('hidden');
-            const ph = getEl('explorerPlaceholder');
-            if (ph) ph.innerText = "連携するとフォルダが表示されます";
-            const el = getEl('explorerList');
-            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">連携するとフォルダが表示されます</p>';
-            const sub = getEl('talkSub');
-            if (sub) sub.innerText = "未連携";
-            currentFolderId = 'root'; folderHistory = [{ id: 'root', name: 'マイドライブ' }]; currentFolderFiles = [];
-        }
-
+        // --- GAS Data Fetching ---
         async function renderExplorer(folderId) {
             currentFolderId = folderId; 
             const el = getEl('explorerList');
-            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">📁 空っぽのフォルダです</p>'; 
+            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">📂 読み込み中...</p>'; 
             updateBreadcrumb(); 
             localStorage.setItem('explorer_folder_history', JSON.stringify(folderHistory));
             try {
-                const res = await gapi.client.drive.files.list({ 
-                    q: `'${folderId}' in parents and (mimeType = 'application/vnd.google-apps.folder' or mimeType = 'text/plain' or mimeType = 'image/jpeg' or mimeType = 'image/png') and trashed = false`, 
-                    fields: 'files(id, name, mimeType)', 
-                    pageSize: 100, 
-                    orderBy: 'folder,name' 
-                });
-                const files = res.result.files; 
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || []; 
                 if (el) el.innerHTML = ''; 
                 currentFolderFiles = [];
                 currentFolderImageFile = null; 
@@ -956,12 +775,8 @@
                         item.innerHTML = `<span class="text-emerald-600 truncate flex-1">🖼️ ${file.name} (アイコン画像)</span>`;
                         item.onclick = async () => {
                             try {
-                                const imgRes = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
-                                const bytes = new Uint8Array(imgRes.body.length);
-                                for (let i = 0; i < imgRes.body.length; i++) bytes[i] = imgRes.body.charCodeAt(i) & 0xff;
-                                let binary = '';
-                                for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-                                partnerCustomAvatarUrl = `data:${file.mimeType};base64,` + window.btoa(binary);
+                                const imgRes = await fetchFromGas("getFile", { fileId: file.id });
+                                partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                                 hasDriveCustomImage = true;
                                 saveCache(globalMessages); 
                                 startRender();
@@ -1083,12 +898,8 @@
 
             if (currentFolderImageFile) {
                 try {
-                    const imgRes = await gapi.client.drive.files.get({ fileId: currentFolderImageFile.id, alt: 'media' });
-                    const bytes = new Uint8Array(imgRes.body.length);
-                    for (let i = 0; i < imgRes.body.length; i++) bytes[i] = imgRes.body.charCodeAt(i) & 0xff;
-                    let binary = '';
-                    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-                    partnerCustomAvatarUrl = `data:${currentFolderImageFile.mimeType};base64,` + window.btoa(binary);
+                    const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                     hasDriveCustomImage = true;
                     localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
                 } catch(e) { console.error("Batch load image fetch failed", e); }
@@ -1102,8 +913,8 @@
             let fileIds = [];
             for (let f of currentFolderFiles) { 
                 try { 
-                    const res = await gapi.client.drive.files.get({ fileId: f.id, alt: 'media' }); 
-                    texts.push({ text: res.body, name: f.name }); 
+                    const res = await fetchFromGas("getFile", { fileId: f.id }); 
+                    texts.push({ text: res.content, name: f.name }); 
                     fileIds.push(f.id);
                 } catch (err) { console.error(err); } 
             }
@@ -1121,12 +932,8 @@
 
                 if (currentFolderImageFile) {
                     try {
-                        const imgRes = await gapi.client.drive.files.get({ fileId: currentFolderImageFile.id, alt: 'media' });
-                        const bytes = new Uint8Array(imgRes.body.length);
-                        for (let i = 0; i < imgRes.body.length; i++) bytes[i] = imgRes.body.charCodeAt(i) & 0xff;
-                        let binary = '';
-                        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-                        partnerCustomAvatarUrl = `data:${currentFolderImageFile.mimeType};base64,` + window.btoa(binary);
+                        const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                        partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                         hasDriveCustomImage = true;
                         localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
                     } catch(e) { console.error("Single load image fetch failed", e); }
@@ -1136,12 +943,12 @@
                     partnerCustomAvatarUrl = "";
                 }
 
-                const res = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' }); 
+                const res = await fetchFromGas("getFile", { fileId: fileId }); 
                 
                 localStorage.setItem('tracked_folder_id', currentFolderId);
                 localStorage.setItem('tracked_file_ids', JSON.stringify([fileId]));
                 localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
-                processMultipleTexts([{ text: res.body, name: filename }]); 
+                processMultipleTexts([{ text: res.content, name: filename }]); 
             } catch (err) { console.error(err); } 
         }
 
@@ -1149,7 +956,7 @@
             const folderId = localStorage.getItem('tracked_folder_id');
             const processedStr = localStorage.getItem('tracked_file_ids');
             
-            if (!folderId || !processedStr || !isGapiClientReady || !isCurrentlyAuthenticated) return;
+            if (!folderId || !processedStr || !isCurrentlyAuthenticated) return;
             
             let processedIds = [];
             try { processedIds = JSON.parse(processedStr); } catch(e) { return; }
@@ -1159,12 +966,8 @@
             if (titleElement) titleElement.innerText = "同期データをチェック中...";
 
             try {
-                const res = await gapi.client.drive.files.list({
-                    q: `'${folderId}' in parents and (mimeType = 'text/plain' or mimeType = 'image/jpeg' or mimeType = 'image/png') and trashed = false`,
-                    fields: 'files(id, name, mimeType)',
-                    orderBy: 'name'
-                });
-                const files = res.result.files || [];
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || [];
                 
                 const imageFiles = files.filter(f => f.mimeType.startsWith('image/'));
                 const textFiles = files.filter(f => f.mimeType === 'text/plain');
@@ -1178,13 +981,8 @@
                     
                     if (imgFile.id !== currentImageId || !hasDriveCustomImage) {
                         try {
-                            const imgRes = await gapi.client.drive.files.get({ fileId: imgFile.id, alt: 'media' });
-                            const bytes = new Uint8Array(imgRes.body.length);
-                            for (let i = 0; i < imgRes.body.length; i++) bytes[i] = imgRes.body.charCodeAt(i) & 0xff;
-                            let binary = '';
-                            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-                            
-                            partnerCustomAvatarUrl = `data:${imgFile.mimeType};base64,` + window.btoa(binary);
+                            const imgRes = await fetchFromGas("getFile", { fileId: imgFile.id });
+                            partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                             hasDriveCustomImage = true;
                             localStorage.setItem('tracked_image_id', imgFile.id);
                             
@@ -1210,8 +1008,8 @@
                     
                     for (let nf of newTextFiles) {
                         try {
-                            const fileRes = await gapi.client.drive.files.get({ fileId: nf.id, alt: 'media' });
-                            newTexts.push({ text: fileRes.body, name: nf.name });
+                            const fileRes = await fetchFromGas("getFile", { fileId: nf.id });
+                            newTexts.push({ text: fileRes.content, name: nf.name });
                             processedIds.push(nf.id);
                         } catch(e) { console.error("新着ファイルのフェッチ失敗:", e); }
                     }
@@ -1333,7 +1131,7 @@
             if (getEl('searchToggleBtn')) getEl('searchToggleBtn').classList.remove('hidden');
             
             if (filteredMessages.length === 0) { 
-                if (c) c.innerHTML = `<div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner"><p class="font-bold mb-1">Google Drive & LINE Viewer v82</p><p class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークファイルを結合してください。</p></div>`; 
+                if (c) c.innerHTML = `<div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner"><p class="font-bold mb-1">Google Drive & LINE Viewer v84</p><p class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークファイルを結合してください。</p></div>`; 
                 return; 
             }
             
@@ -1591,8 +1389,6 @@
                         isCamouflageMode = false; 
                         updateTitleText(); 
                         startRender();
-                    } else { 
-                        clearAuthUi(); 
                     }
                 };
             };
