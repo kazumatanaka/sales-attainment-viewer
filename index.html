@@ -335,13 +335,6 @@
                         </div>
                     </div>
 
-                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2 flex-shrink-0">
-                        <label class="block text-xs font-bold text-gray-500">👤 相手のアイコン画像設定</label>
-                        <button id="resetAvatarBtn" class="w-full bg-gray-500 hover:bg-gray-600 text-white text-xs py-1.5 px-3 rounded font-bold shadow-sm transition cursor-pointer">
-                            設定を初期化してデフォルトに戻す
-                        </button>
-                    </div>
-
                     <div class="space-y-1 flex-shrink-0">
                         <label class="block text-xs font-bold text-gray-500">「自分」の設定</label>
                         <select id="meSelector" class="w-full text-xs border border-gray-300 rounded p-2 bg-white text-black" disabled>
@@ -413,6 +406,7 @@
         let isCurrentlyAuthenticated = false; 
         let isProcessingBiometrics = false; 
 
+        // ユーザーにSECRET_KEYの入力を求め、保存する共通関数
         function promptAndSaveSecretKey(message = "GoogleアカウントのSECRET_KEYを入力してください。") {
             const inputKey = prompt(message);
             if (inputKey && inputKey.trim() !== "") {
@@ -423,6 +417,7 @@
             return false;
         }
 
+        // --- GAS Fetcher Function ---
         async function fetchFromGas(action, params = {}) {
             if (!globalSecretKey) {
                 globalSecretKey = localStorage.getItem(SECRET_STORAGE_KEY) || '';
@@ -446,6 +441,7 @@
             return data;
         }
 
+        // --- Biometrics & Security ---
         function bufferToBase64Url(buffer) {
             return btoa(String.fromCharCode(...new Uint8Array(buffer)))
                 .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -457,6 +453,17 @@
             const buffer = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; i++) buffer[i] = raw.charCodeAt(i);
             return buffer.buffer;
+        }
+
+        // --- 送信者単位でアイコン画像URLを動的に判定する関数 ---
+        function getAvatarUrlForSender(senderName) {
+            if (senderName === 'kazuma') {
+                return currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png';
+            }
+            if (senderName === 'Mai') {
+                return partnerCustomAvatarUrl || (currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png');
+            }
+            return currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png';
         }
 
         function forceLockScreen() {
@@ -660,13 +667,23 @@
             const menuBtn = getEl('menuBtn');
             const closeBtn = getEl('closeMenuBtn');
             const overlay = getEl('overlay');
+            const drawer = getEl('drawerMenu');
 
-            const openMenu = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } toggleDrawer(true); };
+            // ハンバーガーメニュー自体のタップ時の挙動（開いていれば閉じ、閉じていれば開く）
+            const toggleMenu = (e) => { 
+                if (e) { e.preventDefault(); e.stopPropagation(); } 
+                if (drawer && !drawer.classList.contains('hidden')) {
+                    toggleDrawer(false); // 開いているので閉じる
+                } else {
+                    toggleDrawer(true);  // 閉じているので開く
+                }
+            };
             const closeMenu = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } toggleDrawer(false); };
 
             if (menuBtn) {
-                menuBtn.onclick = null; menuBtn.removeEventListener('click', openMenu); menuBtn.removeEventListener('touchend', openMenu);
-                menuBtn.addEventListener('click', openMenu); menuBtn.addEventListener('touchend', openMenu);
+                menuBtn.onclick = null; 
+                menuBtn.removeEventListener('click', toggleMenu); menuBtn.removeEventListener('touchend', toggleMenu);
+                menuBtn.addEventListener('click', toggleMenu); menuBtn.addEventListener('touchend', toggleMenu);
             }
 
             if (closeBtn) {
@@ -712,16 +729,7 @@
             if (targetId === "size-md") changeFontSize('md');
             if (targetId === "size-lg") changeFontSize('lg');
             if (targetId === "batchLoadBtn") triggerBatchLoad();
-
-            if (targetId === "resetAvatarBtn") {
-                partnerCustomAvatarUrl = "";
-                hasDriveCustomImage = false;
-                localStorage.removeItem('tracked_image_id');
-                localStorage.setItem('avatar_explicit_reset', 'true');
-                saveCache(globalMessages);
-                startRender();
-                alert("相手のアイコン画像をデフォルトに戻しました。");
-            }
+            if (targetId === "searchBtn") triggerSearch();
         });
 
         // 検索ワード入力欄でのEnterキーイベント設定
@@ -734,6 +742,7 @@
                         triggerSearch();
                     }
                 });
+                // 入力内容に合わせて「✕（クリア）」ボタンの表示を制御
                 searchInput.addEventListener("input", () => {
                     const clearBtn = getEl('searchClearQueryBtn');
                     if (clearBtn) {
@@ -913,11 +922,13 @@
                 totals.time += stat.totalTime;
             });
 
+            // 生成した日付リンクに対してイベントを設定
             tbody.querySelectorAll('.analysis-date-link').forEach(link => {
                 link.onclick = (e) => {
                     e.preventDefault();
                     const targetDate = link.getAttribute('data-date');
                     
+                    // 1. レポートモーダルを閉じる
                     const modal = getEl('analysisModal');
                     const modalContent = getEl('analysisModalContent');
                     if (modal) {
@@ -926,6 +937,7 @@
                         setTimeout(() => modal.classList.add('hidden'), 300);
                     }
                     
+                    // 2. 閉じる演出（300ms）のあとに該当トーク位置へジャンプ
                     setTimeout(() => {
                         jumpDate(targetDate);
                     }, 350);
@@ -934,7 +946,7 @@
 
             let footHTML = '<tr><td class="p-3 text-center">総計</td>';
             activeSenders.forEach(s => { footHTML += `<td class="p-3 text-center">${totals.senders[s]}</td>`; });
-            footHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
+            headHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
             tfoot.innerHTML = footHTML;
         }
 
@@ -1021,7 +1033,7 @@
             setupAnalysisFeature();
         });
 
-        // --- GAS Data Fetching ---
+        // ---  DATA Fetching ---
         async function renderExplorer(folderId) {
             currentFolderId = folderId; 
             const el = getEl('explorerList');
@@ -1047,6 +1059,13 @@
                     return; 
                 }
                 let textCount = 0;
+                
+                // 自動割り当てルールに適合する画像ファイル（mai.png）を事前検索
+                const maiImgFile = files.find(f => f.name.toLowerCase() === 'mai.png');
+                if (maiImgFile) {
+                    currentFolderImageFile = maiImgFile;
+                }
+
                 files.forEach(file => {
                     const isFolder = (file.mimeType === 'application/vnd.google-apps.folder'); 
                     const isImage = (file.mimeType === 'image/jpeg' || file.mimeType === 'image/png');
@@ -1057,19 +1076,22 @@
                         item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`; 
                         item.onclick = () => { folderHistory.push({ id: file.id, name: file.name }); renderExplorer(file.id); }; 
                     } else if (isImage) {
-                        currentFolderImageFile = file; 
-                        item.innerHTML = `<span class="text-emerald-600 truncate flex-1">🖼️ ${file.name} (アイコン画像)</span>`;
-                        item.onclick = async () => {
-                            try {
-                                const imgRes = await fetchFromGas("getFile", { fileId: file.id });
-                                partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
-                                hasDriveCustomImage = true;
-                                localStorage.removeItem('avatar_explicit_reset'); 
-                                saveCache(globalMessages); 
-                                startRender();
-                                alert("選択した画像を相手のアイコンに設定しました！");
-                            } catch(err) { console.error(err); }
-                        };
+                        // 特定画像（mai.png等）の割り当て表示
+                        if (file.name.toLowerCase() === 'mai.png') {
+                            item.innerHTML = `<span class="text-emerald-600 truncate flex-1">🖼️ ${file.name} (Mai専用アイコン自動検出)</span>`;
+                            item.onclick = async () => {
+                                try {
+                                    const imgRes = await fetchFromGas("getFile", { fileId: file.id });
+                                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                                    hasDriveCustomImage = true;
+                                    saveCache(globalMessages); 
+                                    startRender();
+                                    alert("mai.png をキャラクター画像に反映しました。");
+                                } catch(err) { console.error(err); }
+                            };
+                        } else {
+                            item.innerHTML = `<span class="text-gray-400 truncate flex-1">🖼️ ${file.name}</span>`;
+                        }
                     } else { 
                         item.innerHTML = `<span class="text-gray-600 truncate flex-1">📄 ${file.name}</span>`; 
                         currentFolderFiles.push(file); 
@@ -1114,122 +1136,295 @@
             }
         }
 
-        /* --- 本物のUIデザイン・日付動的表示（当日：時間 / 過去：yy/mm/dd）を再現したテキスト検索機能 --- */
-        function triggerSearch() {
-            const kw = getEl('searchKeyword').value.trim();
-            const kwLower = kw.toLowerCase();
-            const res = getEl('searchResults');
-            const resContainer = getEl('searchResultsContainer');
-            const countLabel = getEl('searchCountLabel');
+        changeTheme = function(themeName) {
+            currentThemeName = themeName; 
+            const savedSize = localStorage.getItem('user_font_size') || 'md';
             
-            if (res) res.innerHTML = ''; 
-            if (!kw) { 
-                if (resContainer) resContainer.classList.add('hidden'); 
-                return; 
+            let sizeClass = 'text-sm';
+            if (savedSize === 'sm') sizeClass = 'text-xs';
+            if (savedSize === 'md') sizeClass = 'text-sm';
+            if (savedSize === 'lg') sizeClass = 'text-base';
+            
+            const c = getEl('chatContainer');
+            if (c) {
+                c.className = `flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-${themeName} ${sizeClass} h-full w-full relative`;
+            }
+            localStorage.setItem('user_theme', themeName);
+            
+            const header = getEl('mainHeader');
+            if (header) {
+                header.className = `h-14 flex items-center justify-between px-3 z-50 shadow-sm w-full fixed top-0 left-0 transition-colors duration-200 header-${themeName}`;
+            }
+
+            const sub = getEl('talkSub');
+            if (sub) {
+                sub.className = `text-[10px] sub-${themeName}`;
+            }
+
+            const buttons = [getEl('theme-blue'), getEl('theme-dark'), getEl('theme-pink'), getEl('theme-beige')];
+            buttons.forEach(b => { if(b) b.classList.remove('ring-4', 'ring-yellow-400'); });
+            const targetBtn = getEl(`theme-${themeName}`); if(targetBtn) targetBtn.classList.add('ring-4', 'ring-yellow-400');
+            
+            if (globalMessages.length > 0 && !getEl('initialWelcomeBox')) {
+                startRender();
+            }
+        }
+
+        changeFontSize = function(sizeName) {
+            const c = getEl('chatContainer');
+            if (c) {
+                c.classList.remove('text-xs', 'text-sm', 'text-base');
+                if (sizeName === 'sm') c.classList.add('text-xs');
+                if (sizeName === 'md') c.classList.add('text-sm');
+                if (sizeName === 'lg') c.classList.add('text-base');
+            }
+            localStorage.setItem('user_font_size', sizeName);
+            
+            const sizeButtons = [getEl('size-sm'), getEl('size-md'), getEl('size-lg')];
+            sizeButtons.forEach(b => { 
+                if(b) b.className = "bg-white border border-gray-300 text-gray-700 text-xs py-1 rounded cursor-pointer"; 
+            });
+            
+            const active = getEl(`size-${sizeName}`); 
+            if(active) {
+                active.className = "bg-blue-600 border border-blue-600 text-white text-xs py-1 rounded font-bold cursor-pointer";
+            }
+        }
+
+        updateBreadcrumb = function() {
+            const bc = getEl('breadcrumb');
+            if (!bc) return; bc.innerHTML = '';
+            folderHistory.forEach((f, idx) => {
+                if (idx > 0) { const arrow = document.createElement('span'); arrow.className = 'mx-1 text-gray-300'; arrow.innerText = '>'; bc.appendChild(arrow); }
+                const node = document.createElement('span'); const isLast = (idx === folderHistory.length - 1);
+                node.className = isLast ? 'font-bold text-gray-800' : 'text-blue-600 hover:underline cursor-pointer'; node.innerText = f.name;
+                if (!isLast) { node.onclick = () => { folderHistory = folderHistory.slice(0, idx + 1); renderExplorer(f.id); }; } bc.appendChild(node);
+            });
+        }
+
+        async function triggerBatchLoad() {
+            if (currentFolderFiles.length === 0) return; 
+            const title = getEl('talkTitle');
+            if (title) title.innerText = "全自動結合中...";
+
+            if (currentFolderImageFile) {
+                try {
+                    const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                    hasDriveCustomImage = true;
+                    localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                } catch(e) { console.error("Batch load image fetch failed", e); }
+            } else {
+                localStorage.removeItem('tracked_image_id');
+                hasDriveCustomImage = false;
+                partnerCustomAvatarUrl = "";
+            }
+
+            let texts = [];
+            let fileIds = [];
+            for (let f of currentFolderFiles) { 
+                try { 
+                    const res = await fetchFromGas("getFile", { fileId: f.id }); 
+                    texts.push({ text: res.content, name: f.name }); 
+                    fileIds.push(f.id);
+                } catch (err) { console.error(err); } 
             }
             
-            let matchedItems = [];
-            let currentDateText = "";
+            localStorage.setItem('tracked_folder_id', currentFolderId);
+            localStorage.setItem('tracked_file_ids', JSON.stringify(fileIds));
+            localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
+            processMultipleTexts(texts);
+        }
+
+        async function processSingleDrive(fileId, filename) { 
+            try { 
+                const title = getEl('talkTitle');
+                if (title) title.innerText = "ファイル取得中...";
+
+                if (currentFolderImageFile) {
+                    try {
+                        const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                        partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                        hasDriveCustomImage = true;
+                        localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                    } catch(e) { console.error("Single load image fetch failed", e); }
+                } else {
+                    localStorage.removeItem('tracked_image_id');
+                    hasDriveCustomImage = false;
+                    partnerCustomAvatarUrl = "";
+                }
+
+                const res = await fetchFromGas("getFile", { fileId: fileId }); 
+                
+                localStorage.setItem('tracked_folder_id', currentFolderId);
+                localStorage.setItem('tracked_file_ids', JSON.stringify([fileId]));
+                localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
+                processMultipleTexts([{ text: res.content, name: filename }]); 
+            } catch (err) { console.error(err); } 
+        }
+
+        async function autoCheckNewFiles() {
+            const folderId = localStorage.getItem('tracked_folder_id');
+            const processedStr = localStorage.getItem('tracked_file_ids');
             
-            // 本日の論理日付を判定するための日付オブジェクト
-            const today = new Date();
-            const todayY = today.getFullYear();
-            const todayM = today.getMonth() + 1;
-            const todayD = today.getDate();
+            if (!folderId || !processedStr || !isCurrentlyAuthenticated) return;
             
-            globalMessages.forEach((m, idx) => {
-                if (m.type === 'date') {
-                    currentDateText = m.text; // 例: "2026/06/28(日)" など
-                } else if (m.type === 'msg' && m.body.toLowerCase().includes(kwLower)) {
-                    let displayDateLabel = m.time; // デフォルトは時間(HH:MM)
+            let processedIds = [];
+            try { processedIds = JSON.parse(processedStr); } catch(e) { return; }
+
+            const titleElement = getEl('talkTitle');
+            const originalTitle = titleElement ? titleElement.innerText : "";
+            if (titleElement) titleElement.innerText = "同期データをチェック中...";
+
+            try {
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || [];
+                
+                const imageFiles = files.filter(f => f.mimeType.startsWith('image/') && f.name.toLowerCase() === 'mai.png');
+                const textFiles = files.filter(f => f.mimeType === 'text/plain');
+
+                let cacheNeedsUpdate = false;
+                let requiresRender = false;
+
+                if (imageFiles.length > 0) {
+                    const imgFile = imageFiles[0]; 
+                    const currentImageId = localStorage.getItem('tracked_image_id');
                     
-                    if (currentDateText) {
-                        const dMatch = currentDateText.match(/(\d{4})[\/\.\-年](\d{1,2})[\/\.\-月](\d{1,2})/);
-                        if (dMatch) {
-                            const msgY = parseInt(dMatch[1], 10);
-                            const msgM = parseInt(dMatch[2], 10);
-                            const msgD = parseInt(dMatch[3], 10);
+                    if (imgFile.id !== currentImageId || !hasDriveCustomImage) {
+                        try {
+                            const imgRes = await fetchFromGas("getFile", { fileId: imgFile.id });
+                            partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                            hasDriveCustomImage = true;
+                            localStorage.setItem('tracked_image_id', imgFile.id);
                             
-                            // 当日かどうかの厳密な判定
-                            const isToday = (msgY === todayY && msgM === todayM && msgD === todayD);
-                            if (!isToday) {
-                                // 前日以前の場合は 「yy/mm/dd」 フォーマットを生成
-                                const yy = String(msgY).slice(-2);
-                                const mm = String(msgM).padStart(2, '0');
-                                const dd = String(msgD).padStart(2, '0');
-                                displayDateLabel = `${yy}/${mm}/${dd}`;
-                            }
-                        }
+                            cacheNeedsUpdate = true;
+                            requiresRender = true;
+                        } catch(e) { console.error("画像自動同期エラー", e); }
                     }
+                }
+
+                const newTextFiles = textFiles.filter(f => !processedIds.includes(f.id));
+
+                if (newTextFiles.length > 0) {
+                    if (titleElement) titleElement.innerText = `新着トークを追加中 (${newTextFiles.length}件)...`;
+                    let newTexts = [];
                     
-                    matchedItems.push({
-                        index: idx,
-                        sender: m.sender,
-                        time: m.time,
-                        body: m.body,
-                        dateStr: displayDateLabel,
-                        rawDate: currentDateText
-                    });
+                    for (let nf of newTextFiles) {
+                        try {
+                            const fileRes = await fetchFromGas("getFile", { fileId: nf.id });
+                            newTexts.push({ text: fileRes.content, name: nf.name });
+                            processedIds.push(nf.id);
+                        } catch(e) { console.error("新着ファイルのフェッチ失敗:", e); }
+                    }
+
+                    if (newTexts.length > 0) {
+                        localStorage.setItem('tracked_file_ids', JSON.stringify(processedIds));
+                        
+                        let currentFlat = [];
+                        let currentDateStr = "";
+                        globalMessages.forEach(m => {
+                            if (m.type === 'date') currentDateStr = m.text;
+                            else if (m.type === 'msg' && currentDateStr) {
+                                currentFlat.push({ dateStr: currentDateStr, time: m.time, sender: m.sender, body: m.body });
+                            }
+                        });
+
+                        newTexts.forEach(obj => {
+                            const { messages } = parseText(obj.text, obj.name);
+                            let targetDate = "";
+                            messages.forEach(m => {
+                                if (m.type === 'date') targetDate = m.text;
+                                else if (m.type === 'msg' && targetDate) {
+                                    currentFlat.push({ dateStr: targetDate, time: m.time, sender: m.sender, body: m.body });
+                                }
+                            });
+                        });
+
+                        currentFlat.sort((a, b) => parseTimestamp(a.dateStr, a.time) - parseTimestamp(b.dateStr, b.time));
+
+                        let timeline = [];
+                        let uniqueKeys = new Set();
+                        let lastDateStr = "";
+                        let counts = {};
+
+                        currentFlat.forEach(m => {
+                            const key = `${m.dateStr}_${m.time}_${m.sender}_${m.body}`;
+                            if (!uniqueKeys.has(key)) {
+                                uniqueKeys.add(key);
+                                if (m.dateStr !== lastDateStr) {
+                                    timeline.push({ type: 'date', text: m.dateStr });
+                                    lastDateStr = m.dateStr;
+                                }
+                                timeline.push({ type: 'msg', time: m.time, sender: m.sender, body: m.body });
+                                counts[m.sender] = (counts[m.sender] || 0) + 1;
+                            }
+                        });
+
+                        globalMessages = timeline;
+                        filteredMessages = [...globalMessages];
+                        globalSenders = Object.keys(counts);
+
+                        const sub = getEl('talkSub');
+                        if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
+                        
+                        updateTitleText();
+                        cacheNeedsUpdate = true;
+                        requiresRender = true;
+                    }
+                }
+
+                if (cacheNeedsUpdate) saveCache(globalMessages);
+                if (requiresRender) startRender();
+
+                if (titleElement) titleElement.innerText = originalTitle;
+                
+            } catch (err) {
+                console.error("自動バックグラウンドチェックエラー:", err);
+                if (titleElement) titleElement.innerText = originalTitle;
+            }
+        }
+
+        function processMultipleTexts(fileObjects) {
+            let allRaw = []; let counts = {}; 
+            fileObjects.forEach(obj => { const { messages } = parseText(obj.text, obj.name); allRaw = allRaw.concat(messages); });
+            let timeline = []; let currentDateStr = ""; let uniqueKeys = new Set(); let flat = [];
+            allRaw.forEach(m => { 
+                if (m.type === 'date') { currentDateStr = m.text; } 
+                else if (m.type === 'msg' && currentDateStr) { flat.push({ dateStr: currentDateStr, time: m.time, sender: m.sender, body: m.body }); } 
+            });
+            flat.sort((a, b) => parseTimestamp(a.dateStr, a.time) - parseTimestamp(b.dateStr, b.time));
+            let lastDateStr = "";
+            flat.forEach(m => {
+                const key = `${m.dateStr}_${m.time}_${m.sender}_${m.body}`;
+                if (!uniqueKeys.has(key)) { 
+                    uniqueKeys.add(key); 
+                    if (m.dateStr !== lastDateStr) { timeline.push({ type: 'date', text: m.dateStr }); lastDateStr = m.dateStr; } 
+                    timeline.push({ type: 'msg', time: m.time, sender: m.sender, body: m.body }); 
+                    counts[m.sender] = (counts[m.sender] || 0) + 1; 
                 }
             });
+            globalMessages = timeline; filteredMessages = [...globalMessages]; globalSenders = Object.keys(counts);
             
-            // 新しい日付の項目から順に表示（降順ソート）
-            matchedItems.reverse();
-            
-            if (resContainer) resContainer.classList.remove('hidden');
-            
-            if (matchedItems.length === 0) {
-                if (countLabel) countLabel.innerText = "メッセージ 0";
-                if (res) res.innerHTML = '<div class="p-6 text-center text-zinc-500 text-xs bg-[#1a1a1a]">メッセージが見つかりませんでした</div>';
-                return;
+            let assumedMe = "", max = 0; 
+            const sel = getEl('meSelector');
+            if (sel) sel.innerHTML = '';
+            for (const [sender, count] of Object.entries(counts)) {
+                const opt = document.createElement('option'); opt.value = sender; opt.innerText = `${sender} (${count}回)`; 
+                if (sel) sel.appendChild(opt); 
+                if (count > max) { max = count; assumedMe = sender; }
             }
+            const savedMe = localStorage.getItem('cached_me_user'); 
+            if (savedMe && counts[savedMe]) { currentMe = savedMe; } else if (assumedMe) { currentMe = assumedMe; }
+            if(currentMe && sel) { sel.value = currentMe; sel.disabled = false; localStorage.setItem('cached_me_user', currentMe); }
             
-            if (countLabel) countLabel.innerText = `メッセージ ${matchedItems.length}`;
+            const sub = getEl('talkSub');
+            if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
             
-            const avatar = getFinalAvatarUrl();
-            const defAvatar = getThemeDefaultAvatar();
-            
-            matchedItems.forEach(m => {
-                const item = document.createElement('div'); 
-                item.className = 'p-3 flex items-start space-x-3 hover:bg-zinc-900 cursor-pointer border-b border-zinc-900 select-none';
-                
-                // キーワードのハイライト処理
-                const escapedKw = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                const highlightBody = m.body.replace(new RegExp(escapedKw, 'gi'), (match) => {
-                    return `<span class="text-[#4ade80] font-medium">${match}</span>`;
-                });
-                
-                item.innerHTML = `
-                    <img src="${avatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" onerror="this.src='${defAvatar}'">
-                    <div class="flex-1 min-w-0 flex flex-col">
-                        <div class="flex justify-between items-baseline">
-                            <span class="font-bold text-xs text-zinc-300 truncate max-w-[75%]">${m.sender}</span>
-                            <span class="text-[10px] text-zinc-500 tracking-wide font-medium flex-shrink-0">${m.dateStr}</span>
-                        </div>
-                        <div class="text-zinc-400 text-xs truncate mt-1 leading-normal">${highlightBody.replace(/<br>/g, ' ')}</div>
-                    </div>
-                `;
-                
-                item.onclick = () => {
-                    currentLoadedIndex = Math.max(0, m.index - 50); 
-                    currentEndLoadedIndex = Math.min(filteredMessages.length, currentLoadedIndex + PAGE_SIZE); 
-                    visibleMessages = filteredMessages.slice(currentLoadedIndex, currentEndLoadedIndex);
-                    
-                    const c = getEl('chatContainer');
-                    if (c) c.innerHTML = ''; 
-                    renderSegment(visibleMessages, 'append', currentLoadedIndex);
-                    
-                    setTimeout(() => { 
-                        const tar = getEl(`msg-${m.index}`); 
-                        if (tar) { 
-                            tar.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-                            tar.classList.add('ring-4', 'ring-yellow-400'); 
-                            setTimeout(() => tar.classList.remove('ring-4', 'ring-yellow-400'), 2000); 
-                        } 
-                    }, 100);
-                };
-                if (res) res.appendChild(item);
-            });
+            isCamouflageMode = false;
+            updateTitleText(); 
+            saveCache(globalMessages); 
+            startRender(); 
+            toggleDrawer(false);
         }
 
         function startRender() {
@@ -1343,9 +1538,119 @@
             }, 150);
         }
 
+        /* --- 本物のデザイン・新しい順(降順)に最適化したテキスト検索機能 --- */
+        function triggerSearch() {
+            const kw = getEl('searchKeyword').value.trim();
+            const kwLower = kw.toLowerCase();
+            const res = getEl('searchResults');
+            const resContainer = getEl('searchResultsContainer');
+            const countLabel = getEl('searchCountLabel');
+            
+            if (res) res.innerHTML = ''; 
+            if (!kw) { 
+                if (resContainer) resContainer.classList.add('hidden'); 
+                return; 
+            }
+            
+            let matchedItems = [];
+            let currentDateText = "";
+            
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+            
+            globalMessages.forEach((m, idx) => {
+                if (m.type === 'date') {
+                    currentDateText = m.text; 
+                } else if (m.type === 'msg' && m.body.toLowerCase().includes(kwLower)) {
+                    let displayDate = "";
+                    if (currentDateText) {
+                        const dMatch = currentDateText.match(/(\d{4})[\/\.\-年](\d{1,2})[\/\.\-月](\d{1,2})/);
+                        if (dMatch) {
+                            const msgDateStr = `${dMatch[1]}/${dMatch[2].padStart(2, '0')}/${dMatch[3].padStart(2, '0')}`;
+                            if (msgDateStr === todayStr) {
+                                displayDate = m.time;
+                            } else {
+                                displayDate = `${dMatch[1].slice(-2)}/${dMatch[2].padStart(2, '0')}/${dMatch[3].padStart(2, '0')}`;
+                            }
+                        } else {
+                            displayDate = m.time;
+                        }
+                    } else {
+                        displayDate = m.time;
+                    }
+
+                    matchedItems.push({
+                        index: idx,
+                        sender: m.sender,
+                        time: m.time,
+                        body: m.body,
+                        dateStr: displayDate,
+                        rawDate: currentDateText
+                    });
+                }
+            });
+            
+            matchedItems.reverse();
+            
+            if (resContainer) resContainer.classList.remove('hidden');
+            
+            if (matchedItems.length === 0) {
+                if (countLabel) countLabel.innerText = "メッセージ 0";
+                if (res) res.innerHTML = '<div class="p-6 text-center text-zinc-500 text-xs bg-[#1a1a1a]">メッセージが見つかりませんでした</div>';
+                return;
+            }
+            
+            if (countLabel) countLabel.innerText = `メッセージ ${matchedItems.length}`;
+            
+            const defAvatar = getThemeDefaultAvatar();
+            
+            matchedItems.forEach(m => {
+                const item = document.createElement('div'); 
+                item.className = 'p-3 flex items-start space-x-3 hover:bg-zinc-900 cursor-pointer border-b border-zinc-900 select-none';
+                
+                const escapedKw = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                const highlightBody = m.body.replace(new RegExp(escapedKw, 'gi'), (match) => {
+                    return `<span class="text-[#4ade80] font-medium">${match}</span>`;
+                });
+                
+                /* 送信者（m.sender）を基にカスタムまたはデフォルトのアイコンを割り当て */
+                const currentMsgAvatar = getAvatarUrlForSender(m.sender);
+                
+                item.innerHTML = `
+                    <img src="${currentMsgAvatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" onerror="this.src='${defAvatar}'">
+                    <div class="flex-1 min-w-0 flex flex-col">
+                        <div class="flex justify-between items-baseline">
+                            <span class="font-bold text-xs text-zinc-300 truncate max-w-[75%]">${m.sender}</span>
+                            <span class="text-[10px] text-zinc-500 tracking-wide font-medium flex-shrink-0">${m.dateStr}</span>
+                        </div>
+                        <div class="text-zinc-400 text-xs truncate mt-1 leading-normal">${highlightBody.replace(/<br>/g, ' ')}</div>
+                    </div>
+                `;
+                
+                item.onclick = () => {
+                    currentLoadedIndex = Math.max(0, m.index - 50); 
+                    currentEndLoadedIndex = Math.min(filteredMessages.length, currentLoadedIndex + PAGE_SIZE); 
+                    visibleMessages = filteredMessages.slice(currentLoadedIndex, currentEndLoadedIndex);
+                    
+                    const c = getEl('chatContainer');
+                    if (c) c.innerHTML = ''; 
+                    renderSegment(visibleMessages, 'append', currentLoadedIndex);
+                    
+                    setTimeout(() => { 
+                        const tar = getEl(`msg-${m.index}`); 
+                        if (tar) { 
+                            tar.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                            tar.classList.add('ring-4', 'ring-yellow-400'); 
+                            setTimeout(() => tar.classList.remove('ring-4', 'ring-yellow-400'), 2000); 
+                        } 
+                    }, 100);
+                };
+                if (res) res.appendChild(item);
+            });
+        }
+
         function renderSegment(msgs, mode = 'append', base = 0) {
             const frag = document.createDocumentFragment();
-            const avatar = getFinalAvatarUrl();
             const defAvatar = getThemeDefaultAvatar();
 
             msgs.forEach((msg, idx) => {
@@ -1379,8 +1684,12 @@
                     } 
                     else { 
                         w.className = 'flex items-start space-x-2 max-w-[85%] self-start p-0.5 flex-shrink-0 mb-1'; 
+                        
+                        /* 送信者（相手）に基づいたアイコンURLの割り当て */
+                        const partnerAvatar = getAvatarUrlForSender(msg.sender);
+                        
                         w.innerHTML = `
-                            <img src="${avatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 select-none mt-0.5" alt="avatar" onerror="this.src='${defAvatar}'">
+                            <img src="${partnerAvatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 select-none mt-0.5" alt="avatar" onerror="this.src='${defAvatar}'">
                             <div class="flex flex-col">
                                 <span class="text-[11px] name-text mb-0.5 ml-1 select-none font-medium">${msg.sender}</span>
                                 <div class="flex items-end space-x-1.5">
@@ -1416,6 +1725,7 @@
             }; 
         }
 
+        // IndexedDB初期ロード
         function openDbAndLoad() {
             const req = indexedDB.open("LineViewerCacheDB", 1);
             req.onupgradeneeded = function(e) { 
@@ -1481,7 +1791,7 @@
             const lines = text.split(/\r?\n/); const messages = []; const counts = {}; let partner = "";
             const match = filename.match(/\[LINE\]\s*(.+?)とのトーク/); if (match) partner = match[1];
             
-            const dateRegex = /^(\d{4}[\/\.\-年]\d{1,2}[\/\.\-月]\d{1,2})(?:\s+|\s*\(\s*)([0-9a-zA-Z一-龥ぁ-んァ-ヶ]|MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*|\s*\)\s*)$/i; 
+            const dateRegex = /^(\d{4}[\/\.\-年]\d{1,2}[\/\.\-月]\d{1,2})(?:\s+|\s*\(\s*)([0-9a-zA-Z一-龥ぁ-んァ-ヶ]|MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*|\s*\(\s*)$/i; 
             const reg1 = /^(\d{1,2}:\d{2})[\t]([^\t\n]+)[\t](.*)$/; 
             const reg2 = /^(\d{1,2}:\d{2})\s+([^\s]+)\s+(.*)$/;
             let ref = null;
