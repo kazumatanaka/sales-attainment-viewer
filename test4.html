@@ -229,7 +229,6 @@
                     <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="10.5" cy="10.5" r="7.5"></circle>
                         <line x1="21" y1="21" x2="15.8" y2="15.8"></line>
-                        <path d="M10.5 7v3.5l2 2" stroke-width="2"></path>
                     </svg>
                 </button>
                 
@@ -354,10 +353,7 @@
                                 <span id="albumAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▼</span>
                             </div>
                             <div id="albumAccordionContent" class="space-y-1.5 flex flex-col min-h-0">
-                                <button id="setAlbumFolderBtn" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
-                                    📁 現在の探索フォルダをアルバムに設定
-                                </button>
-                                <div class="text-[11px] font-bold text-gray-400 mt-1 select-none">またはドライブから選択:</div>
+                                <div class="text-[11px] font-bold text-gray-400 select-none">ドライブからフォルダを選択:</div>
                                 <div id="albumBreadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
                                     マイドライブ
                                 </div>
@@ -1987,26 +1983,7 @@
             updateAlbumStatusUI();
             renderAlbumExplorer(albumDriveFolderId);
 
-            // 1. 探索フォルダをアルバムフォルダに設定
-            getEl('setAlbumFolderBtn').onclick = () => {
-                // ドライブエクスプローラー上の現在階層の名前を特定
-                const breadcrumbSpan = getEl('breadcrumb').lastElementChild;
-                const activeName = breadcrumbSpan ? breadcrumbSpan.innerText : "マイドライブ";
-                
-                albumFolderId = currentFolderId;
-                albumFolderName = activeName;
-
-                localStorage.setItem('album_folder_id', albumFolderId);
-                localStorage.setItem('album_folder_name', albumFolderName);
-
-                alert(`「${albumFolderName}」をアルバム連携フォルダに設定しました。`);
-                updateAlbumStatusUI();
-
-                // フォルダ設定後は折り畳む
-                setAccordionState('album', false);
-            };
-
-            // 2. アルバム閲覧モーダルを開く
+            // 1. アルバム閲覧モーダルを開く
             getEl('openAlbumBtn').onclick = async () => {
                 if (!albumFolderId) return;
                 toggleDrawer(false); // メニューを閉じる
@@ -2072,14 +2049,14 @@
                 }
             };
 
-            // 3. アルバム閲覧モーダルを閉じる
+            // 2. アルバム閲覧モーダルを閉じる
             getEl('closeAlbumModalBtn').onclick = () => {
                 const m = getEl('albumModal');
                 m.classList.add('opacity-0');
                 setTimeout(() => m.classList.add('hidden'), 300);
             };
 
-            // 4. ライトボックスモーダルの各操作イベント群
+            // 3. ライトボックスモーダルの各操作イベント群
             getEl('closeLightboxBtn').onclick = closeLightbox;
             getEl('prevLightboxBtn').onclick = () => navigateLightbox(-1);
             getEl('nextLightboxBtn').onclick = () => navigateLightbox(1);
