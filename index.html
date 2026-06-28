@@ -125,6 +125,24 @@
             display: flex !important;
         }
         /* ------------------------------------------- */
+
+        /* カルーセル用スタイル */
+        #lightboxCarouselTrack {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            will-change: transform;
+        }
+        .carousel-slide {
+            width: 33.333.333%;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans h-screen flex flex-col overflow-hidden select-none w-full max-w-full m-0 p-0">
@@ -229,7 +247,6 @@
                     <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="10.5" cy="10.5" r="7.5"></circle>
                         <line x1="21" y1="21" x2="15.8" y2="15.8"></line>
-                        <path d="M10.5 7v3.5l2 2" stroke-width="2"></path>
                     </svg>
                 </button>
                 
@@ -290,15 +307,20 @@
                 <div class="p-4 flex-1 overflow-y-auto space-y-4 text-sm flex flex-col min-h-0">
                     <div class="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex-shrink-0">
                         <div id="driveExplorerZone" class="space-y-1.5 flex flex-col min-h-0">
-                            <label class="block text-[11px] font-bold text-gray-500">ドライブを探索</label>
-                            <div id="breadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
-                                マイドライブ
+                            <div id="driveAccordionHeader" class="flex items-center justify-between cursor-pointer select-none">
+                                <label class="block text-[11px] font-bold text-gray-500 pointer-events-none">ドライブを探索</label>
+                                <span id="driveAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▲</span>
                             </div>
-                            <button id="batchLoadBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded font-bold shadow-sm transition hidden cursor-pointer">
-                                ⚡ このフォルダ内のトークをすべて結合
-                            </button>
-                            <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
-                                <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
+                            <div id="driveAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
+                                <div id="breadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
+                                    マイドライブ
+                                </div>
+                                <button id="batchLoadBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded font-bold shadow-sm transition hidden cursor-pointer">
+                                    ⚡ このフォルダ内のトークをすべて結合
+                                </button>
+                                <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
+                                    <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -341,6 +363,30 @@
                             <option value="">ファイルを読み込んでください</option>
                         </select>
                     </div>
+
+                    <div class="space-y-2 pt-3 border-t border-gray-200 flex-shrink-0">
+                        <div id="albumExplorerZone" class="space-y-1.5 flex flex-col min-h-0 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">
+                            <div id="albumAccordionHeader" class="flex items-center justify-between cursor-pointer select-none">
+                                <label class="block text-xs font-bold text-gray-500 pointer-events-none">🖼️ フォトアルバム連携</label>
+                                <span id="albumAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▲</span>
+                            </div>
+                            <div id="albumAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
+                                <div class="text-[11px] font-bold text-gray-400 select-none">ドライブからフォルダを選択:</div>
+                                <div id="albumBreadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
+                                    マイドライブ
+                                </div>
+                                <div id="albumExplorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
+                                    <p class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="albumTargetStatus" class="text-[11px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-200 break-all">
+                            アルバムフォルダ: 未設定
+                        </div>
+                        <button id="openAlbumBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer hidden">
+                            🌸 アルバムを見る
+                        </button>
+                    </div>
                 </div>
             </aside>
         </div>
@@ -368,9 +414,37 @@
         </div>
     </div>
 
+    <div id="albumModal" class="fixed inset-0 bg-black/90 z-[99999] hidden flex flex-col opacity-0 transition-opacity duration-300">
+        <header class="h-14 bg-zinc-950 flex items-center justify-between px-4 border-b border-zinc-800 text-white flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="text-base font-bold tracking-wide">🖼️ Photo Album</span>
+                <span id="albumCountLabel" class="text-xs text-zinc-400 font-mono"></span>
+            </div>
+            <button id="closeAlbumModalBtn" class="text-zinc-400 hover:text-white text-2xl font-bold p-2 cursor-pointer leading-none">&times;</button>
+        </header>
+        <div id="albumGridContainer" class="flex-1 overflow-y-auto p-3 bg-zinc-900 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 auto-rows-max align-content-start">
+            </div>
+    </div>
+
+    <div id="lightboxModal" class="fixed inset-0 bg-black/95 z-[100000] hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-200 select-none">
+        <button id="closeLightboxBtn" class="absolute top-4 right-4 text-white/70 hover:text-white text-3xl font-bold z-[100005] p-2 cursor-pointer bg-black/20 rounded-full w-12 h-12 flex items-center justify-center">&times;</button>
+        
+        <button id="prevLightboxBtn" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80 bg-black/40 hover:bg-black/60 rounded-full w-12 h-12 flex items-center justify-center z-[100005] font-bold text-xl transition cursor-pointer">&#10094;</button>
+        <button id="nextLightboxBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/80 bg-black/40 hover:bg-black/60 rounded-full w-12 h-12 flex items-center justify-center z-[100005] font-bold text-xl transition cursor-pointer">&#10095;</button>
+
+        <div class="w-full h-full relative overflow-hidden flex flex-col justify-center items-center" id="lightboxSwipeZone">
+            <div id="lightboxCarouselTrack">
+                <div class="carousel-slide" id="carouselSlideLeft"></div>
+                <div class="carousel-slide" id="carouselSlideCenter"></div>
+                <div class="carousel-slide" id="carouselSlideRight"></div>
+            </div>
+            <p id="lightboxFilename" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-zinc-400 text-xs tracking-wide truncate max-w-md px-4 text-center z-[100005] pointer-events-none"></p>
+        </div>
+    </div>
+
     <script>
         // --- GAS API Config ---
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxOfCpulEysHSye_Ncp9vkwiZzXYTpZa1C4h-TIX_jXEN0hqGu-ly7Ld8B--nBZiGbTRQ/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzhmDsB6RIi_WJmYB9S9Hyyid_1yJpT9okwbh5-2NaJr5eiGR1LG4hqk8hSwgYhjgbZ/exec';
         let globalSecretKey = ''; 
 
         const DEFAULT_PARTNER_AVATAR = "default.png";
@@ -405,6 +479,22 @@
         const SECRET_STORAGE_KEY = 'bio_auth_secret_key'; 
         let isCurrentlyAuthenticated = false; 
         let isProcessingBiometrics = false; 
+
+        // 追加: フォトアルバム用ステート管理変数
+        let albumFolderId = localStorage.getItem('album_folder_id') || '';
+        let albumFolderName = localStorage.getItem('album_folder_name') || '';
+        let albumImages = []; 
+        let currentLightboxIndex = 0;
+
+        // 追加: アルバム選択用のDrive探索ステート
+        let albumDriveFolderId = 'root';
+        let albumFolderHistory = [{ id: 'root', name: 'マイドライブ' }];
+
+        // カルーセル制御用ステート
+        let carouselStartX = 0;
+        let carouselCurrentX = 0;
+        let isCarouselDragging = false;
+        let carouselTrackWidth = 0;
 
         // ユーザーにSECRET_KEYの入力を求め、保存する共通関数
         function promptAndSaveSecretKey(message = "GoogleアカウントのSECRET_KEYを入力してください。") {
@@ -472,6 +562,10 @@
             // レポート表示中であっても瞬時にモーダルを隠してロックへ復帰させる
             let modal = getEl('analysisModal');
             if (modal) modal.classList.add('hidden');
+
+            // アルバム関連モーダルも隠す
+            if (getEl('albumModal')) getEl('albumModal').classList.add('hidden');
+            if (getEl('lightboxModal')) getEl('lightboxModal').classList.add('hidden');
 
             let lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
@@ -1045,6 +1139,9 @@
 
             openDbAndLoad();
             
+            // アコーディオン初期イベント設定
+            setupAccordionFeatures();
+
             const trackedHistory = localStorage.getItem('tracked_folder_history');
             if (trackedHistory) {
                 folderHistory = JSON.parse(trackedHistory);
@@ -1054,6 +1151,9 @@
             }
 
             setupAnalysisFeature();
+
+            // 追加: フォトアルバム機能の初期化呼び出し
+            initPhotoAlbumFeature();
         });
 
         // ---  DATA Fetching ---
@@ -1260,6 +1360,8 @@
             localStorage.setItem('tracked_file_ids', JSON.stringify(fileIds));
             localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
             processMultipleTexts(texts);
+
+            setAccordionState('drive', false);
         }
 
         async function processSingleDrive(fileId, filename) { 
@@ -1286,6 +1388,8 @@
                 localStorage.setItem('tracked_file_ids', JSON.stringify([fileId]));
                 localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
                 processMultipleTexts([{ text: res.content, name: filename }]); 
+
+                setAccordionState('drive', false);
             } catch (err) { console.error(err); } 
         }
 
@@ -1639,7 +1743,6 @@
                     return `<span class="text-[#4ade80] font-medium">${match}</span>`;
                 });
                 
-                /* 送信者（m.sender）を基にカスタムまたはデフォルトのアイコンを割り当て */
                 const currentMsgAvatar = getAvatarUrlForSender(m.sender);
                 
                 item.innerHTML = `
@@ -1662,7 +1765,6 @@
                     if (c) c.innerHTML = ''; 
                     renderSegment(visibleMessages, 'append', currentLoadedIndex);
                     
-                    // 発言を選んだら一覧コンテナのみ非表示にする挙動に変更
                     const container = getEl('searchResultsContainer');
                     if (container) container.classList.add('hidden');
                     
@@ -1707,15 +1809,13 @@
                         w.innerHTML = `
                             <div class="flex flex-col items-end justify-end pb-0.5 space-y-1">
                                 <span class="text-[10px] time-text select-none leading-none">既読</span>
-                                <span class="text-[10px] time-text select-none leading-none whitespace-nowrap">${msg.time}</span>
+                                <span class="text-[10px] time-text select-none pb-0.5 whitespace-nowrap">${msg.time}</span>
                             </div>
                             <div class="bubble-me relative break-all whitespace-pre-wrap select-text">${msg.body}</div>
                         `; 
                     } 
                     else { 
                         w.className = 'flex items-start space-x-2 max-w-[85%] self-start p-0.5 flex-shrink-0 mb-1'; 
-                        
-                        /* 送信者（相手）に基づいたアイコンURLの割り当て */
                         const partnerAvatar = getAvatarUrlForSender(msg.sender);
                         
                         w.innerHTML = `
@@ -1755,7 +1855,6 @@
             }; 
         }
 
-        // IndexedDB初期ロード
         function openDbAndLoad() {
             const req = indexedDB.open("LineViewerCacheDB", 1);
             req.onupgradeneeded = function(e) { 
@@ -1852,6 +1951,357 @@
                 }
             }
             return { messages, counts, partner };
+        }
+
+        // ==========================================
+        // アコーディオン（折りたたみ）制御ロジック
+        // ==========================================
+        function setupAccordionFeatures() {
+            const driveHeader = getEl('driveAccordionHeader');
+            const albumHeader = getEl('albumAccordionHeader');
+
+            if (driveHeader) {
+                driveHeader.onclick = () => {
+                    const content = getEl('driveAccordionContent');
+                    const isHidden = content.classList.contains('hidden');
+                    setAccordionState('drive', isHidden);
+                };
+            }
+
+            if (albumHeader) {
+                albumHeader.onclick = () => {
+                    const content = getEl('albumAccordionContent');
+                    const isHidden = content.classList.contains('hidden');
+                    setAccordionState('album', isHidden);
+                };
+            }
+
+            // 【変更】初期状態はどちらも折り畳み（非表示）にする
+            setAccordionState('drive', false);
+            setAccordionState('album', false);
+        }
+
+        function setAccordionState(prefix, isOpen) {
+            const content = getEl(`${prefix}AccordionContent`);
+            const icon = getEl(`${prefix}AccordionIcon`);
+            if (!content || !icon) return;
+
+            if (isOpen) {
+                content.classList.remove('hidden');
+                icon.innerText = '▼';
+            } else {
+                content.classList.add('hidden');
+                icon.innerText = '▲';
+            }
+        }
+
+        // ==========================================
+        // 追加機能: フォトアルバム機能の処理ロジック
+        // ==========================================
+        function initPhotoAlbumFeature() {
+            updateAlbumStatusUI();
+            renderAlbumExplorer(albumDriveFolderId);
+
+            // アルバム閲覧モーダルを開く
+            getEl('openAlbumBtn').onclick = async () => {
+                if (!albumFolderId) return;
+                toggleDrawer(false); 
+                
+                const gridContainer = getEl('albumGridContainer');
+                gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-400 text-sm">📂 写真データを取得中...</div>';
+                getEl('albumCountLabel').innerText = "";
+
+                const m = getEl('albumModal');
+                m.classList.remove('hidden');
+                requestAnimationFrame(() => m.classList.remove('opacity-0'));
+
+                try {
+                    const res = await fetchFromGas("list", { folderId: albumFolderId });
+                    const files = res.files || [];
+                    
+                    albumImages = files.filter(f => {
+                        const mt = f.mimeType ? f.mimeType.toLowerCase() : '';
+                        return mt === 'image/jpeg' || mt === 'image/png' || mt === 'image/gif' || mt === 'image/webp';
+                    });
+
+                    if (albumImages.length === 0) {
+                        gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-500 text-sm">📷 フォルダ内に画像ファイルが見つかりません</div>';
+                        return;
+                    }
+
+                    getEl('albumCountLabel').innerText = `${albumImages.length} 枚`;
+                    gridContainer.innerHTML = '';
+
+                    albumImages.forEach((img, idx) => {
+                        const card = document.createElement('div');
+                        // 【変更】w-full を追加し、Gridアイテムとしての幅を確定させて重なりを防ぐ
+                        card.className = "relative aspect-square w-full bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700/50 cursor-pointer hover:border-zinc-500 transition group select-none";
+                        card.innerHTML = `
+                            <div class="absolute inset-0 flex items-center justify-center text-[10px] text-zinc-500 group-hover:text-zinc-400">Loading...</div>
+                            <img data-id="${img.id}" class="w-full h-full object-cover relative z-10 opacity-0 transition-opacity duration-300" alt="photo">
+                        `;
+                        
+                        gridContainer.appendChild(card);
+
+                        fetchFromGas("getFile", { fileId: img.id }).then(resData => {
+                            const imgEl = card.querySelector('img');
+                            if (imgEl) {
+                                imgEl.src = `data:${resData.mimeType};base64,${resData.content}`;
+                                imgEl.classList.remove('opacity-0');
+                            }
+                        }).catch(e => {
+                            console.error("アルバム画像の個別取得に失敗:", e);
+                            card.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-[10px] text-red-500">Error</div>';
+                        });
+
+                        card.onclick = () => openLightbox(idx);
+                    });
+
+                } catch (err) {
+                    console.error("アルバム読み込みエラー:", err);
+                    gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-red-500 text-sm">⚠️ 写真一覧の取得に失敗しました</div>';
+                }
+            };
+
+            getEl('closeAlbumModalBtn').onclick = () => {
+                const m = getEl('albumModal');
+                m.classList.add('opacity-0');
+                setTimeout(() => m.classList.add('hidden'), 300);
+            };
+
+            getEl('closeLightboxBtn').onclick = closeLightbox;
+            getEl('prevLightboxBtn').onclick = () => navigateLightbox(-1);
+            getEl('nextLightboxBtn').onclick = () => navigateLightbox(1);
+
+            document.addEventListener('keydown', (e) => {
+                const lightbox = getEl('lightboxModal');
+                if (lightbox && !lightbox.classList.contains('hidden')) {
+                    if (e.key === 'Escape') closeLightbox();
+                    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+                    if (e.key === 'ArrowRight') navigateLightbox(1);
+                }
+            });
+
+            // スマホ向け: カルーセルスワイプジェスチャー(左右)の実装
+            const swipeZone = getEl('lightboxSwipeZone');
+            const track = getEl('lightboxCarouselTrack');
+            
+            swipeZone.addEventListener('touchstart', (e) => {
+                if (albumImages.length <= 1) return;
+                isCarouselDragging = true;
+                carouselStartX = e.changedTouches[0].clientX;
+                carouselTrackWidth = swipeZone.clientWidth;
+                track.style.transition = 'none';
+            }, { passive: true });
+
+            swipeZone.addEventListener('touchmove', (e) => {
+                if (!isCarouselDragging) return;
+                carouselCurrentX = e.changedTouches[0].clientX;
+                const deltaX = carouselCurrentX - carouselStartX;
+                
+                // 基準位置（中央スライド = -100%分）からの相対移動距離を計算
+                const baseOffset = -carouselTrackWidth;
+                const currentOffset = baseOffset + deltaX;
+                track.style.transform = `translateX(${currentOffset}px)`;
+            }, { passive: true });
+
+            swipeZone.addEventListener('touchend', (e) => {
+                if (!isCarouselDragging) return;
+                isCarouselDragging = false;
+                const deltaX = e.changedTouches[0].clientX - carouselStartX;
+                const threshold = 60; // 切り替え判定の閾値（ピクセル）
+
+                track.style.transition = 'transform 0.25s ease-out';
+
+                if (deltaX < -threshold) {
+                    // 左スワイプ -> 次の写真へ
+                    track.style.transform = `translateX(${-carouselTrackWidth * 2}px)`;
+                    setTimeout(() => {
+                        currentLightboxIndex = (currentLightboxIndex + 1) % albumImages.length;
+                        renderLightboxImage();
+                    }, 250);
+                } else if (deltaX > threshold) {
+                    // 右スワイプ -> 前の写真へ
+                    track.style.transform = 'translateX(0px)';
+                    setTimeout(() => {
+                        currentLightboxIndex = (currentLightboxIndex - 1 + albumImages.length) % albumImages.length;
+                        renderLightboxImage();
+                    }, 250);
+                } else {
+                    // 元に戻る
+                    track.style.transform = `translateX(${-carouselTrackWidth}px)`;
+                }
+            }, { passive: true });
+        }
+
+        // アルバム専用ドライブ探索のレンダリング
+        async function renderAlbumExplorer(folderId) {
+            albumDriveFolderId = folderId;
+            const el = getEl('albumExplorerList');
+            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">📂 読み込み中...</p>';
+            updateAlbumBreadcrumb();
+            try {
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || [];
+                if (el) el.innerHTML = '';
+
+                const folders = files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+                if (folders.length === 0 && el) {
+                    el.innerHTML = '<p class="text-gray-400 text-center py-4">📁 子フォルダが見つかりません</p>';
+                }
+
+                const selectCurrentItem = document.createElement('div');
+                selectCurrentItem.className = 'p-2.5 bg-amber-50 hover:bg-amber-100 flex items-center justify-between cursor-pointer transition font-bold text-amber-900 border-b border-amber-200 select-none';
+                selectCurrentItem.innerHTML = `<span>🎯 このフォルダを選択 (${albumFolderHistory[albumFolderHistory.length - 1].name})</span>`;
+                selectCurrentItem.onclick = () => {
+                    albumFolderId = albumDriveFolderId;
+                    albumFolderName = albumFolderHistory[albumFolderHistory.length - 1].name;
+                    localStorage.setItem('album_folder_id', albumFolderId);
+                    localStorage.setItem('album_folder_name', albumFolderName);
+                    alert(`「${albumFolderName}」をアルバム連携フォルダに設定しました。`);
+                    updateAlbumStatusUI();
+                    
+                    setAccordionState('album', false);
+                };
+                if (el) el.appendChild(selectCurrentItem);
+
+                folders.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
+                    item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`;
+                    item.onclick = () => {
+                        albumFolderHistory.push({ id: file.id, name: file.name });
+                        renderAlbumExplorer(file.id);
+                    };
+                    if (el) el.appendChild(item);
+                });
+            } catch (err) {
+                console.error("アルバム用ドライブ探索エラー:", err);
+                if (el) el.innerHTML = '<p class="text-red-500 text-center py-4">⚠️ 通信または認証エラーが発生しました</p>';
+            }
+        }
+
+        function updateAlbumBreadcrumb() {
+            const bc = getEl('albumBreadcrumb');
+            if (!bc) return; bc.innerHTML = '';
+            albumFolderHistory.forEach((f, idx) => {
+                if (idx > 0) { const arrow = document.createElement('span'); arrow.className = 'mx-1 text-gray-300'; arrow.innerText = '>'; bc.appendChild(arrow); }
+                const node = document.createElement('span'); const isLast = (idx === albumFolderHistory.length - 1);
+                node.className = isLast ? 'font-bold text-gray-800' : 'text-blue-600 hover:underline cursor-pointer'; node.innerText = f.name;
+                if (!isLast) { node.onclick = () => { albumFolderHistory = albumFolderHistory.slice(0, idx + 1); renderAlbumExplorer(f.id); }; } bc.appendChild(node);
+            });
+        }
+
+        function updateAlbumStatusUI() {
+            if (albumFolderId) {
+                getEl('albumTargetStatus').innerText = `アルバムフォルダ: ${albumFolderName || '設定済み'}`;
+                getEl('albumTargetStatus').classList.remove('text-gray-500');
+                getEl('albumTargetStatus').classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+                getEl('openAlbumBtn').classList.remove('hidden');
+            } else {
+                getEl('albumTargetStatus').innerText = "アルバムフォルダ: 未設定";
+                getEl('albumTargetStatus').className = "text-[11px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-200 break-all";
+                getEl('openAlbumBtn').classList.add('hidden');
+            }
+        }
+
+        // ライトボックスを開く
+        async function openLightbox(index) {
+            currentLightboxIndex = index;
+            const lightbox = getEl('lightboxModal');
+            lightbox.classList.remove('hidden');
+            requestAnimationFrame(() => lightbox.classList.remove('opacity-0'));
+            
+            renderLightboxImage();
+        }
+
+        // ライトボックスを閉じる
+        function closeLightbox() {
+            const lightbox = getEl('lightboxModal');
+            lightbox.classList.add('opacity-0');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                getEl('carouselSlideLeft').innerHTML = "";
+                getEl('carouselSlideCenter').innerHTML = "";
+                getEl('carouselSlideRight').innerHTML = "";
+            }, 200);
+        }
+
+        // ボタン経由でのインデックス送り（ぬるっとした移動演出を付与）
+        function navigateLightbox(direction) {
+            if (albumImages.length <= 1) return;
+            const track = getEl('lightboxCarouselTrack');
+            const width = swipeZone = getEl('lightboxSwipeZone').clientWidth;
+            
+            track.style.transition = 'transform 0.25s ease-out';
+            if (direction === 1) {
+                track.style.transform = `translateX(${-width * 2}px)`;
+            } else {
+                track.style.transform = 'translateX(0px)';
+            }
+
+            setTimeout(() => {
+                currentLightboxIndex = (currentLightboxIndex + direction + albumImages.length) % albumImages.length;
+                renderLightboxImage();
+            }, 250);
+        }
+
+        // 【変更】カルーセル構造（前・中・後）に合わせて3枚のコンテンツを再配置
+        async function renderLightboxImage() {
+            if (albumImages.length === 0) return;
+
+            const track = getEl('lightboxCarouselTrack');
+            const width = getEl('lightboxSwipeZone').clientWidth;
+
+            // 位置と遷移エフェクトのリセット（常に中央のスライドを表示基準位置にする）
+            track.style.transition = 'none';
+            track.style.transform = `translateX(${-width}px)`;
+
+            const total = albumImages.length;
+            const idxLeft = (currentLightboxIndex - 1 + total) % total;
+            const idxCenter = currentLightboxIndex;
+            const idxRight = (currentLightboxIndex + 1) % total;
+
+            getEl('lightboxFilename').innerText = `(${currentLightboxIndex + 1} / ${total}) ${albumImages[idxCenter].name}`;
+
+            // スライドのDOMを取得してクリア
+            const sLeft = getEl('carouselSlideLeft');
+            const sCenter = getEl('carouselSlideCenter');
+            const sRight = getEl('carouselSlideRight');
+
+            sLeft.innerHTML = '';
+            sCenter.innerHTML = '';
+            sRight.innerHTML = '';
+
+            // 各スライドにイメージを割り当て
+            setupSlideImage(sCenter, albumImages[idxCenter]);
+            if (total > 1) {
+                setupSlideImage(sLeft, albumImages[idxLeft]);
+                setupSlideImage(sRight, albumImages[idxRight]);
+            }
+        }
+
+        // スライド内に高パフォーマンスな画像を非同期でセットする内部補助関数
+        function setupSlideImage(container, imgInfo) {
+            const imgEl = document.createElement('img');
+            imgEl.className = "max-w-full max-h-[85vh] object-contain shadow-2xl transition-opacity duration-200 pointer-events-none opacity-0";
+            imgEl.alt = "拡大写真";
+
+            // すでにサムネイルグリッド上に読み込まれている同一IDのソースがあれば流用（超高速化）
+            const cachedGridImg = getEl('albumGridContainer').querySelector(`img[data-id="${imgInfo.id}"]`);
+            if (cachedGridImg && cachedGridImg.src) {
+                imgEl.src = cachedGridImg.src;
+                imgEl.classList.remove('opacity-0');
+                container.appendChild(imgEl);
+            } else {
+                // キャッシュにない場合のみ新規取得
+                container.appendChild(imgEl);
+                fetchFromGas("getFile", { fileId: imgInfo.id }).then(resData => {
+                    imgEl.src = `data:${resData.mimeType};base64,${resData.content}`;
+                    imgEl.classList.remove('opacity-0');
+                }).catch(e => console.error("ライトボックスカルーセル画像の読み込み失敗:", e));
+            }
         }
     </script>
 </body>
