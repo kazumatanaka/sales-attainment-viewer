@@ -284,9 +284,6 @@
                         <button id="authBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
                             🔄 ドライブを再読み込み
                         </button>
-                        <button id="cloudLogoutBtn" class="w-full bg-red-500 hover:bg-red-600 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
-                            🚪 クラウド連携からログアウト
-                        </button>
                         
                         <div id="driveExplorerZone" class="space-y-1.5 pt-1 flex flex-col min-h-0">
                             <label class="block text-[11px] font-bold text-gray-500">ドライブを探索</label>
@@ -369,7 +366,7 @@
 
     <script>
         // --- GAS API Config ---
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxVgfcS43_y4H7jT56H5LeuVRQdh9kOe5zawYL2RXvQbtvKbE26397QqmmZiEYs2urU/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxOfCpulEysHSye_Ncp9vkwiZzXYTpZa1C4h-TIX_jXEN0hqGu-ly7Ld8B--nBZiGbTRQ/exec';
         const SECRET_KEY = 'my_secret_key_123'; // GAS側で設定したキーと同じもの
 
         const DEFAULT_PARTNER_AVATAR = "default.png";
@@ -391,6 +388,7 @@
         let currentFolderId = 'root'; 
         let folderHistory = [{ id: 'root', name: 'マイドライブ' }];
         let currentFolderFiles = []; 
+        let currentFolderImageFile = null; 
 
         let isCamouflageMode = false;
         let actualPartnerNames = "Line Talk Viewer"; 
@@ -681,37 +679,6 @@
                 await renderExplorer(currentFolderId);
                 await autoCheckNewFiles();
                 btn.innerText = "🔄 ドライブを再読み込み";
-                return;
-            }
-
-            // --- 新規追加: クラウドログアウト機能 ---
-            if (targetId === "cloudLogoutBtn") {
-                if(!confirm("クラウド連携の設定とキャッシュをリセットしてログアウトしますか？")) return;
-                
-                // localStorageの連携関連データをクリア
-                localStorage.removeItem('tracked_folder_id');
-                localStorage.removeItem('tracked_file_ids');
-                localStorage.removeItem('tracked_folder_history');
-                localStorage.removeItem('explorer_folder_history');
-                localStorage.removeItem('tracked_image_id');
-                
-                // アイコンのリセット
-                hasDriveCustomImage = false;
-                partnerCustomAvatarUrl = "";
-                
-                // エクスプローラーのリセット
-                folderHistory = [{ id: 'root', name: 'マイドライブ' }];
-                currentFolderId = 'root';
-                
-                // IndexedDBおよび画面のリセット
-                clearCache();
-                globalMessages = [];
-                filteredMessages = [];
-                returnToInitialWelcome();
-                renderExplorer('root');
-                
-                alert("ログアウトしました。");
-                return;
             }
         });
 
@@ -929,7 +896,7 @@
                     localStorage.removeItem('tracked_folder_id');
                     localStorage.removeItem('tracked_file_ids');
                     localStorage.removeItem('tracked_folder_history');
-                    // ※ログアウトまでアイコンを保持するため、tracked_image_idはここでは削除しない
+                    localStorage.removeItem('tracked_image_id');
                     for (let f of files) {
                         const txt = await new Promise((res) => { const r = new FileReader(); r.onload = (evt) => res(evt.target.result); r.readAsText(f, 'UTF-8'); });
                         texts.push({ text: txt, name: f.name });
@@ -980,6 +947,7 @@
                 const files = res.files || []; 
                 if (el) el.innerHTML = ''; 
                 currentFolderFiles = [];
+                currentFolderImageFile = null; 
 
                 if (currentFolderId === localStorage.getItem('tracked_folder_id')) {
                     const pinInfo = document.createElement('div');
@@ -1003,25 +971,17 @@
                         item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`; 
                         item.onclick = () => { folderHistory.push({ id: file.id, name: file.name }); renderExplorer(file.id); }; 
                     } else if (isImage) {
-                        item.innerHTML = `<span class="text-emerald-600 truncate flex-1 hover:underline">🖼️ ${file.name} (クリックでアイコンに設定)</span>`;
+                        currentFolderImageFile = file; 
+                        item.innerHTML = `<span class="text-emerald-600 truncate flex-1">🖼️ ${file.name} (アイコン画像)</span>`;
                         item.onclick = async () => {
                             try {
-                                const title = getEl('talkTitle');
-                                if (title) title.innerText = "画像取得中...";
-                                
                                 const imgRes = await fetchFromGas("getFile", { fileId: file.id });
                                 partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                                 hasDriveCustomImage = true;
-                                localStorage.setItem('tracked_image_id', file.id);
                                 saveCache(globalMessages); 
-                                
-                                if (globalMessages.length > 0) startRender();
-                                if (title) updateTitleText();
+                                startRender();
                                 alert("選択した画像を相手のアイコンに設定しました！");
-                            } catch(err) { 
-                                console.error(err); 
-                                alert("画像の取得に失敗しました。");
-                            }
+                            } catch(err) { console.error(err); }
                         };
                     } else { 
                         item.innerHTML = `<span class="text-gray-600 truncate flex-1">📄 ${file.name}</span>`; 
@@ -1136,6 +1096,19 @@
             const title = getEl('talkTitle');
             if (title) title.innerText = "全自動結合中...";
 
+            if (currentFolderImageFile) {
+                try {
+                    const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                    hasDriveCustomImage = true;
+                    localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                } catch(e) { console.error("Batch load image fetch failed", e); }
+            } else {
+                localStorage.removeItem('tracked_image_id');
+                hasDriveCustomImage = false;
+                partnerCustomAvatarUrl = "";
+            }
+
             let texts = [];
             let fileIds = [];
             for (let f of currentFolderFiles) { 
@@ -1156,6 +1129,19 @@
             try { 
                 const title = getEl('talkTitle');
                 if (title) title.innerText = "ファイル取得中...";
+
+                if (currentFolderImageFile) {
+                    try {
+                        const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                        partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                        hasDriveCustomImage = true;
+                        localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                    } catch(e) { console.error("Single load image fetch failed", e); }
+                } else {
+                    localStorage.removeItem('tracked_image_id');
+                    hasDriveCustomImage = false;
+                    partnerCustomAvatarUrl = "";
+                }
 
                 const res = await fetchFromGas("getFile", { fileId: fileId }); 
                 
@@ -1182,10 +1168,38 @@
             try {
                 const res = await fetchFromGas("list", { folderId: folderId });
                 const files = res.files || [];
+                
+                const imageFiles = files.filter(f => f.mimeType.startsWith('image/'));
                 const textFiles = files.filter(f => f.mimeType === 'text/plain');
 
                 let cacheNeedsUpdate = false;
                 let requiresRender = false;
+
+                if (imageFiles.length > 0) {
+                    const imgFile = imageFiles[0]; 
+                    const currentImageId = localStorage.getItem('tracked_image_id');
+                    
+                    if (imgFile.id !== currentImageId || !hasDriveCustomImage) {
+                        try {
+                            const imgRes = await fetchFromGas("getFile", { fileId: imgFile.id });
+                            partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                            hasDriveCustomImage = true;
+                            localStorage.setItem('tracked_image_id', imgFile.id);
+                            
+                            cacheNeedsUpdate = true;
+                            requiresRender = true;
+                        } catch(e) { console.error("画像自動同期エラー", e); }
+                    }
+                } else {
+                    if (hasDriveCustomImage) {
+                        hasDriveCustomImage = false;
+                        partnerCustomAvatarUrl = "";
+                        localStorage.removeItem('tracked_image_id');
+                        cacheNeedsUpdate = true;
+                        requiresRender = true;
+                    }
+                }
+
                 const newTextFiles = textFiles.filter(f => !processedIds.includes(f.id));
 
                 if (newTextFiles.length > 0) {
