@@ -468,6 +468,11 @@
 
         function forceLockScreen() {
             isCurrentlyAuthenticated = false;
+            
+            // レポート表示中であっても瞬時にモーダルを隠してロックへ復帰させる
+            let modal = getEl('analysisModal');
+            if (modal) modal.classList.add('hidden');
+
             let lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
                 lockScreen.classList.remove('stealth-layer-standby');
@@ -605,6 +610,9 @@
             if (!drawer || !overlay) return;
 
             if (show) {
+                // ドロワー（メニュー）を開くなら、検索窓は隠す
+                toggleHeaderBox(false);
+
                 drawer.classList.remove('hidden');
                 overlay.classList.remove('hidden');
                 setTimeout(() => {
@@ -710,6 +718,10 @@
             if (targetId === "searchCloseBtn") { toggleHeaderBox(false); return; }
 
             if (targetId === "calendarBtn" || e.target.closest("#calendarBtn")) {
+                // カレンダーを開く時は、検索窓とドロワーメニュー（ハンバーガー）を排他クローズする
+                toggleHeaderBox(false);
+                toggleDrawer(false);
+                
                 const picker = getEl('jumpDatePicker');
                 if (picker && typeof picker.showPicker === 'function') picker.showPicker();
                 return;
@@ -732,7 +744,7 @@
             if (targetId === "searchBtn") triggerSearch();
         });
 
-        // 検索ワード入力欄でのEnterキーイベント設定
+        // 検索窓入力欄に関するイベント設定
         document.addEventListener("DOMContentLoaded", () => {
             const searchInput = getEl('searchKeyword');
             if (searchInput) {
@@ -747,6 +759,14 @@
                     const clearBtn = getEl('searchClearQueryBtn');
                     if (clearBtn) {
                         clearBtn.classList.toggle('hidden', searchInput.value.trim() === '');
+                    }
+                });
+                // 検索窓を再度タップ（フォーカス）した時に結果があれば一覧を再表示する挙動を追加
+                searchInput.addEventListener("click", () => {
+                    const resContainer = getEl('searchResultsContainer');
+                    const resList = getEl('searchResults');
+                    if (resContainer && resList && resList.children.length > 0) {
+                        resContainer.classList.remove('hidden');
                     }
                 });
             }
@@ -835,7 +855,9 @@
 
                     if (!dailyStats[logicalDateString]) {
                         dailyStats[logicalDateString] = { date: logicalDateString, senderCounts: {}, sessions: 0, totalTime: 0 };
-                        globalSenders.forEach(s => dailyStats[logicalDateString].senderCounts[s] = 0);
+                        // kazuma、Maiの順番で枠組みを保証
+                        dailyStats[logicalDateString].senderCounts['kazuma'] = 0;
+                        dailyStats[logicalDateString].senderCounts['Mai'] = 0;
                     }
 
                     if (dailyStats[logicalDateString].senderCounts[msg.sender] !== undefined) {
@@ -879,7 +901,8 @@
             const tbody = getEl('tableBody');
             const tfoot = getEl('tableFoot');
             
-            let activeSenders = Array.from(new Set(globalMessages.filter(m => m.type === 'msg').map(m => m.sender)));
+            // カラムの表示順序を「kazuma」「Mai」の順に強制固定
+            const activeSenders = ['kazuma', 'Mai'];
             
             let headHTML = '<tr><th class="p-3 text-center w-32">論理日付</th>';
             activeSenders.forEach(s => { headHTML += `<th class="p-3 text-center">${s} 発言数</th>`; });
@@ -946,7 +969,7 @@
 
             let footHTML = '<tr><td class="p-3 text-center">総計</td>';
             activeSenders.forEach(s => { footHTML += `<td class="p-3 text-center">${totals.senders[s]}</td>`; });
-            headHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
+            footHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
             tfoot.innerHTML = footHTML;
         }
 
@@ -1117,6 +1140,9 @@
             const box = getEl('headerSearchBox'); if (!box) return;
             const isHidden = box.classList.contains('hidden'); const toShow = (forceState !== undefined) ? forceState : isHidden;
             if (toShow) {
+                // 検索窓を開く時は、ドロワーメニュー（ハンバーガーメニュー）側を排他クローズする
+                toggleDrawer(false);
+
                 box.classList.remove('hidden'); const input = getEl('searchKeyword');
                 if (input) { input.value = ''; input.focus(); }
                 getEl('searchClearQueryBtn').classList.add('hidden');
@@ -1636,6 +1662,10 @@
                     if (c) c.innerHTML = ''; 
                     renderSegment(visibleMessages, 'append', currentLoadedIndex);
                     
+                    // 発言を選んだら一覧コンテナのみ非表示にする挙動に変更
+                    const container = getEl('searchResultsContainer');
+                    if (container) container.classList.add('hidden');
+                    
                     setTimeout(() => { 
                         const tar = getEl(`msg-${m.index}`); 
                         if (tar) { 
@@ -1791,7 +1821,7 @@
             const lines = text.split(/\r?\n/); const messages = []; const counts = {}; let partner = "";
             const match = filename.match(/\[LINE\]\s*(.+?)とのトーク/); if (match) partner = match[1];
             
-            const dateRegex = /^(\d{4}[\/\.\-年]\d{1,2}[\/\.\-月]\d{1,2})(?:\s+|\s*\(\s*)([0-9a-zA-Z一-龥ぁ-んァ-ヶ]|MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*|\s*\(\s*)$/i; 
+            const dateRegex = /^(\d{4}[\/\.\-年]\d{1,2}[\/\.\-月]\d{1,2})(?:\s+|\s*\(\s*)([0-9a-zA-Z一-龥ぁ-んァ-ヶ]|MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*|\s*\)\s*)$/i; 
             const reg1 = /^(\d{1,2}:\d{2})[\t]([^\t\n]+)[\t](.*)$/; 
             const reg2 = /^(\d{1,2}:\d{2})\s+([^\s]+)\s+(.*)$/;
             let ref = null;
