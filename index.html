@@ -293,7 +293,7 @@
             <main id="chatContainer" class="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-blue h-full w-full relative">
                 <div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner">
                     <p class="font-bold mb-1">Google Drive & LINE Viewer v84</p>
-                    <p id="guideText" class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークファイルを結合してください。</p>
+                    <p id="guideText" class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークフォルダおよびアルバムフォルダを選択してください。</p>
                 </div>
             </main>
 
@@ -316,9 +316,6 @@
                                 <div id="breadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
                                     マイドライブ
                                 </div>
-                                <button id="batchLoadBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded font-bold shadow-sm transition hidden cursor-pointer">
-                                    ⚡ このフォルダ内のトークをすべて結合
-                                </button>
                                 <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
                                     <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
                                 </div>
@@ -372,7 +369,6 @@
                                 <span id="albumAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▲</span>
                             </div>
                             <div id="albumAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
-                                <div class="text-[11px] font-bold text-gray-400 select-none">ドライブからフォルダを選択:</div>
                                 <div id="albumBreadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
                                     マイドライブ
                                 </div>
@@ -674,13 +670,13 @@
 
         function unlockScreen() {
             isCurrentlyAuthenticated = true;
-                                                            
+                                                                        
             const lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
                 lockScreen.style.transition = 'opacity 0.3s ease-out';
                 lockScreen.classList.remove('stealth-layer-active');
                 lockScreen.classList.add('stealth-layer-standby');
-                                                                                
+                                                                                                                
                 setTimeout(() => { 
                     lockScreen.style.transition = 'none'; 
                     autoCheckNewFiles();
@@ -835,7 +831,6 @@
             if (targetId === "size-sm") changeFontSize('sm');
             if (targetId === "size-md") changeFontSize('md');
             if (targetId === "size-lg") changeFontSize('lg');
-            if (targetId === "batchLoadBtn") triggerBatchLoad();
             if (targetId === "searchBtn") triggerSearch();
         });
 
@@ -897,7 +892,7 @@
                     }
                     toggleDrawer(false); 
                     runAnalysisAndRender();
-                                                                                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                                                                                    
                     modal.classList.remove('hidden');
                     requestAnimationFrame(() => {
                         modal.classList.remove('opacity-0');
@@ -1054,7 +1049,7 @@
                         if (modalContent) modalContent.classList.add('scale-95');
                         setTimeout(() => modal.classList.add('hidden'), 300);
                     }
-                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                                    
                     // 2. 閉じる演出（300ms）のあとに該当トーク位置へジャンプ
                     setTimeout(() => {
                         jumpDate(targetDate);
@@ -1083,9 +1078,9 @@
             const size = localStorage.getItem('user_font_size') || 'md';
             changeTheme(theme);
             changeFontSize(size);
-                                                                        
+                                                                                
             setupIndependentMenuEvents();
-                                                                        
+                                                                                
             if (getEl('jumpDatePicker')) {
                 getEl('jumpDatePicker').onchange = (e) => {
                     const val = e.target.value;
@@ -1110,7 +1105,6 @@
                 getEl('fileInput').onchange = async (e) => {
                     const files = e.target.files; if (!files || files.length === 0) return;
                     if (getEl('talkTitle')) getEl('talkTitle').innerText = "ファイルを結合中...";
-                    let texts = [];
                     localStorage.removeItem('tracked_folder_id');
                     localStorage.removeItem('tracked_file_ids');
                     localStorage.removeItem('tracked_folder_history');
@@ -1183,7 +1177,7 @@
                     return; 
                 }
                 let textCount = 0;
-                                                                        
+                                                                                
                 // 自動割り当てルールに適合する画像ファイル（mai.png）を事前検索
                 const maiImgFile = files.find(f => f.name.toLowerCase() === 'mai.png');
                 if (maiImgFile) {
@@ -1195,7 +1189,7 @@
                     const isImage = (file.mimeType === 'image/jpeg' || file.mimeType === 'image/png');
                     const item = document.createElement('div');
                     item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
-                                                                                                                                                                    
+                                                                                                                                                                                                
                     if (isFolder) { 
                         item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`; 
                         item.onclick = () => { folderHistory.push({ id: file.id, name: file.name }); renderExplorer(file.id); }; 
@@ -1224,19 +1218,17 @@
                     }
                     if (el) el.appendChild(item);
                 });
-                const bBtn = getEl('batchLoadBtn');
-                if (textCount > 0 && bBtn) { 
-                    bBtn.innerText = `⚡ このフォルダ内の一括結合 (${textCount}個)`; 
-                    bBtn.classList.remove('hidden'); 
-                } else if(bBtn) {
-                    bBtn.classList.add('hidden');
+
+                // 【完全自動同期化】フォルダ内にPlain Text形式のトーク履歴ファイルがあれば即座に一括同期
+                if (textCount > 0) {
+                    triggerFolderAutoSync();
                 }
             } catch (err) { 
                 console.error("ドライブ探索エラー:", err);
                 if (el) el.innerHTML = '<p class="text-red-500 text-center py-4">⚠️ 通信または認証エラーが発生しました</p>';
             }
         }
-                
+                    
         function toggleHeaderBox(forceState) {
             const box = getEl('headerSearchBox'); if (!box) return;
             const isHidden = box.classList.contains('hidden'); const toShow = (forceState !== undefined) ? forceState : isHidden;
@@ -1273,18 +1265,18 @@
         changeTheme = function(themeName) {
             currentThemeName = themeName; 
             const savedSize = localStorage.getItem('user_font_size') || 'md';
-                                                                        
+                                                                                
             let sizeClass = 'text-sm';
             if (savedSize === 'sm') sizeClass = 'text-xs';
             if (savedSize === 'md') sizeClass = 'text-sm';
             if (savedSize === 'lg') sizeClass = 'text-base';
-                                                                        
+                                                                                
             const c = getEl('chatContainer');
             if (c) {
                 c.className = `flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-${themeName} ${sizeClass} h-full w-full relative`;
             }
             localStorage.setItem('user_theme', themeName);
-                                                                        
+                                                                                
             const header = getEl('mainHeader');
             if (header) {
                 header.className = `h-14 flex items-center justify-between px-3 z-50 shadow-sm w-full fixed top-0 left-0 transition-colors duration-200 header-${themeName}`;
@@ -1298,7 +1290,7 @@
             const buttons = [getEl('theme-blue'), getEl('theme-dark'), getEl('theme-pink'), getEl('theme-beige')];
             buttons.forEach(b => { if(b) b.classList.remove('ring-4', 'ring-yellow-400'); });
             const targetBtn = getEl(`theme-${themeName}`); if(targetBtn) targetBtn.classList.add('ring-4', 'ring-yellow-400');
-                                                                        
+                                                                                
             if (globalMessages.length > 0 && !getEl('initialWelcomeBox')) {
                 startRender();
             }
@@ -1313,12 +1305,12 @@
                 if (sizeName === 'lg') c.classList.add('text-base');
             }
             localStorage.setItem('user_font_size', sizeName);
-                                                                        
+                                                                                
             const sizeButtons = [getEl('size-sm'), getEl('size-md'), getEl('size-lg')];
             sizeButtons.forEach(b => { 
                 if(b) b.className = "bg-white border border-gray-300 text-gray-700 text-xs py-1 rounded cursor-pointer"; 
             });
-                                                                        
+                                                                                
             const active = getEl(`size-${sizeName}`); 
             if(active) {
                 active.className = "bg-blue-600 border border-blue-600 text-white text-xs py-1 rounded font-bold cursor-pointer";
@@ -1336,10 +1328,11 @@
             });
         }
 
-        async function triggerBatchLoad() {
+        // --- 初回一括読み込み＆監視フォルダ登録処理 ---
+        async function triggerFolderAutoSync() {
             if (currentFolderFiles.length === 0) return; 
             const title = getEl('talkTitle');
-            if (title) title.innerText = "全自動結合中...";
+            if (title) title.innerText = "自動同期中...";
 
             if (currentFolderImageFile) {
                 try {
@@ -1347,7 +1340,7 @@
                     partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                     hasDriveCustomImage = true;
                     localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
-                } catch(e) { console.error("Batch load image fetch failed", e); }
+                } catch(e) { console.error("Auto load initial partner avatar fetch failed", e); }
             } else {
                 localStorage.removeItem('tracked_image_id');
                 hasDriveCustomImage = false;
@@ -1404,9 +1397,9 @@
         async function autoCheckNewFiles() {
             const folderId = localStorage.getItem('tracked_folder_id');
             const processedStr = localStorage.getItem('tracked_file_ids');
-                                                                                                        
+                                                                                                                                                
             if (!folderId || !processedStr || !isCurrentlyAuthenticated) return;
-                                                                                                        
+                                                                                                                                                
             let processedIds = [];
             try { processedIds = JSON.parse(processedStr); } catch(e) { return; }
 
@@ -1434,7 +1427,7 @@
                             partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                             hasDriveCustomImage = true;
                             localStorage.setItem('tracked_image_id', imgFile.id);
-                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                        
                             cacheNeedsUpdate = true;
                             requiresRender = true;
                         } catch(e) { console.error("画像自動同期エラー", e); }
@@ -1446,7 +1439,7 @@
                 if (newTextFiles.length > 0) {
                     if (titleElement) titleElement.innerText = `新着トークを追加中 (${newTextFiles.length}件)...`;
                     let newTexts = [];
-                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                        
                     for (let nf of newTextFiles) {
                         try {
                             const fileRes = await fetchFromGas("getFile", { fileId: nf.id });
@@ -1457,7 +1450,7 @@
 
                     if (newTexts.length > 0) {
                         localStorage.setItem('tracked_file_ids', JSON.stringify(processedIds));
-                                                                                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                        
                         let currentFlat = [];
                         let currentDateStr = "";
                         globalMessages.forEach(m => {
@@ -1504,7 +1497,7 @@
 
                         const sub = getEl('talkSub');
                         if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
-                                        
+                                                
                         updateTitleText();
                         cacheNeedsUpdate = true;
                         requiresRender = true;
@@ -2134,26 +2127,18 @@
                     el.innerHTML = '<p class="text-gray-400 text-center py-4">📁 子フォルダが見つかりません</p>';
                 }
 
-                const selectCurrentItem = document.createElement('div');
-                selectCurrentItem.className = 'p-2.5 bg-amber-50 hover:bg-amber-100 flex items-center justify-between cursor-pointer transition font-bold text-amber-900 border-b border-amber-200 select-none';
-                selectCurrentItem.innerHTML = `<span>🎯 このフォルダを選択 (${albumFolderHistory[albumFolderHistory.length - 1].name})</span>`;
-                selectCurrentItem.onclick = () => {
-                    albumFolderId = albumDriveFolderId;
-                    albumFolderName = albumFolderHistory[albumFolderHistory.length - 1].name;
-                    localStorage.setItem('album_folder_id', albumFolderId);
-                    localStorage.setItem('album_folder_name', albumFolderName);
-                    alert(`「${albumFolderName}」をアルバム連携フォルダに設定しました。`);
-                    updateAlbumStatusUI();
-                     
-                    setAccordionState('album', false);
-                };
-                if (el) el.appendChild(selectCurrentItem);
-
                 folders.forEach(file => {
                     const item = document.createElement('div');
                     item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
                     item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`;
                     item.onclick = () => {
+                        // 【完全自動同期化】フォルダの中に入った時点で即座にその階層の情報を永続化して連携フォルダとして確定
+                        albumFolderId = file.id;
+                        albumFolderName = file.name;
+                        localStorage.setItem('album_folder_id', albumFolderId);
+                        localStorage.setItem('album_folder_name', albumFolderName);
+                        updateAlbumStatusUI();
+
                         albumFolderHistory.push({ id: file.id, name: file.name });
                         renderAlbumExplorer(file.id);
                     };
@@ -2172,7 +2157,25 @@
                 if (idx > 0) { const arrow = document.createElement('span'); arrow.className = 'mx-1 text-gray-300'; arrow.innerText = '>'; bc.appendChild(arrow); }
                 const node = document.createElement('span'); const isLast = (idx === albumFolderHistory.length - 1);
                 node.className = isLast ? 'font-bold text-gray-800' : 'text-blue-600 hover:underline cursor-pointer'; node.innerText = f.name;
-                if (!isLast) { node.onclick = () => { albumFolderHistory = albumFolderHistory.slice(0, idx + 1); renderAlbumExplorer(f.id); }; } bc.appendChild(node);
+                if (!isLast) {
+                    node.onclick = () => {
+                        albumFolderHistory = albumFolderHistory.slice(0, idx + 1);
+                        
+                        // パンくずリストで上の階層に戻った場合も、その戻り先の階層を新しい連携先として自動設定
+                        albumFolderId = f.id === 'root' ? '' : f.id;
+                        albumFolderName = f.id === 'root' ? '' : f.name;
+                        if (albumFolderId) {
+                            localStorage.setItem('album_folder_id', albumFolderId);
+                            localStorage.setItem('album_folder_name', albumFolderName);
+                        } else {
+                            localStorage.removeItem('album_folder_id');
+                            localStorage.removeItem('album_folder_name');
+                        }
+                        updateAlbumStatusUI();
+                        
+                        renderAlbumExplorer(f.id);
+                    };
+                } bc.appendChild(node);
             });
         }
 
