@@ -314,7 +314,7 @@
                             </div>
                             <div id="driveAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
                                 <div id="breadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
-                                    マイドライブ
+                                    マイ ドライブ
                                 </div>
                                 <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
                                     <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
@@ -370,7 +370,7 @@
                             </div>
                             <div id="albumAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
                                 <div id="albumBreadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
-                                    マイドライブ
+                                    マイ ドライブ
                                 </div>
                                 <div id="albumExplorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
                                     <p class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
@@ -404,7 +404,7 @@
                         <tbody id="tableBody" class="divide-y divide-gray-100 text-gray-600">
                             </tbody>
                         <tfoot id="tableFoot" class="bg-gray-100 text-gray-800 font-bold border-t-2 border-gray-300 sticky bottom-0">
-                            </tbody>
+                            </tfoot>
                     </table>
                 </div>
             </div>
@@ -461,7 +461,7 @@
         let isLoadingMore = false; 
 
         let currentFolderId = 'root'; 
-        let folderHistory = [{ id: 'root', name: 'マイドライブ' }];
+        let folderHistory = [{ id: 'root', name: 'マイ ドライブ' }];
         let currentFolderFiles = []; 
         let currentFolderImageFile = null; 
 
@@ -485,7 +485,7 @@
 
         // 追加: アルバム選択用のDrive探索ステート
         let albumDriveFolderId = 'root';
-        let albumFolderHistory = [{ id: 'root', name: 'マイドライブ' }];
+        let albumFolderHistory = [{ id: 'root', name: 'マイ ドライブ' }];
 
         // カルーセル制御用ステート
         let carouselStartX = 0;
@@ -670,13 +670,13 @@
 
         function unlockScreen() {
             isCurrentlyAuthenticated = true;
-                                                                        
+                                                                                
             const lockScreen = getEl('biometricLockScreen');
             if (lockScreen) {
                 lockScreen.style.transition = 'opacity 0.3s ease-out';
                 lockScreen.classList.remove('stealth-layer-active');
                 lockScreen.classList.add('stealth-layer-standby');
-                                                                                                                
+                                                                                                                                                            
                 setTimeout(() => { 
                     lockScreen.style.transition = 'none'; 
                     autoCheckNewFiles();
@@ -892,7 +892,7 @@
                     }
                     toggleDrawer(false); 
                     runAnalysisAndRender();
-                                                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                                                                            
                     modal.classList.remove('hidden');
                     requestAnimationFrame(() => {
                         modal.classList.remove('opacity-0');
@@ -1049,7 +1049,7 @@
                         if (modalContent) modalContent.classList.add('scale-95');
                         setTimeout(() => modal.classList.add('hidden'), 300);
                     }
-                                                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                            
                     // 2. 閉じる演出（300ms）のあとに該当トーク位置へジャンプ
                     setTimeout(() => {
                         jumpDate(targetDate);
@@ -1059,7 +1059,7 @@
 
             let footHTML = '<tr><td class="p-3 text-center">総計</td>';
             activeSenders.forEach(s => { footHTML += `<td class="p-3 text-center">${totals.senders[s]}</td>`; });
-            headHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
+            footHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
             tfoot.innerHTML = footHTML;
         }
 
@@ -1109,6 +1109,7 @@
                     localStorage.removeItem('tracked_file_ids');
                     localStorage.removeItem('tracked_folder_history');
                     localStorage.removeItem('tracked_image_id');
+                    let texts = [];
                     for (let f of files) {
                         const txt = await new Promise((res) => { const r = new FileReader(); r.onload = (evt) => res(evt.target.result); r.readAsText(f, 'UTF-8'); });
                         texts.push({ text: txt, name: f.name });
@@ -1189,7 +1190,7 @@
                     const isImage = (file.mimeType === 'image/jpeg' || file.mimeType === 'image/png');
                     const item = document.createElement('div');
                     item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
-                                                                                                                                                                                                
+                                                                                                                                                                                
                     if (isFolder) { 
                         item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`; 
                         item.onclick = () => { folderHistory.push({ id: file.id, name: file.name }); renderExplorer(file.id); }; 
@@ -1397,9 +1398,9 @@
         async function autoCheckNewFiles() {
             const folderId = localStorage.getItem('tracked_folder_id');
             const processedStr = localStorage.getItem('tracked_file_ids');
-                                                                                                                                                
+                                                                                                                                                                                
             if (!folderId || !processedStr || !isCurrentlyAuthenticated) return;
-                                                                                                                                                
+                                                                                                                                                                                
             let processedIds = [];
             try { processedIds = JSON.parse(processedStr); } catch(e) { return; }
 
@@ -1420,14 +1421,14 @@
                 if (imageFiles.length > 0) {
                     const imgFile = imageFiles[0]; 
                     const currentImageId = localStorage.getItem('tracked_image_id');
-                                    
+                                        
                     if (imgFile.id !== currentImageId || !hasDriveCustomImage) {
                         try {
                             const imgRes = await fetchFromGas("getFile", { fileId: imgFile.id });
                             partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
                             hasDriveCustomImage = true;
                             localStorage.setItem('tracked_image_id', imgFile.id);
-                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                        
                             cacheNeedsUpdate = true;
                             requiresRender = true;
                         } catch(e) { console.error("画像自動同期エラー", e); }
@@ -1439,7 +1440,7 @@
                 if (newTextFiles.length > 0) {
                     if (titleElement) titleElement.innerText = `新着トークを追加中 (${newTextFiles.length}件)...`;
                     let newTexts = [];
-                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                        
                     for (let nf of newTextFiles) {
                         try {
                             const fileRes = await fetchFromGas("getFile", { fileId: nf.id });
@@ -1450,7 +1451,7 @@
 
                     if (newTexts.length > 0) {
                         localStorage.setItem('tracked_file_ids', JSON.stringify(processedIds));
-                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                        
                         let currentFlat = [];
                         let currentDateStr = "";
                         globalMessages.forEach(m => {
@@ -1911,7 +1912,11 @@
             const lines = text.split(/\r?\n/); const messages = []; const counts = {}; let partner = "";
             const match = filename.match(/\[LINE\]\s*(.+?)とのトーク/); if (match) partner = match[1];
              
-            const dateRegex = /^(\d{4}[\/\.\-年]\d{1,2}[\/\.\-月]\d{1,2})(?:\s+|\s*\(\s*)([0-9a-zA-Z一-龥ぁ-んァ-ヶ]|MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*|\s*\)\s*)$/i; 
+            // 【変更】感覚的に正しいとされる、行頭と行末を厳格に指定した日付スタンプ用の正規表現
+            const dateRegex = /^(\d{4}[\/\-年]\d{1,2}[\/\-月]\d{1,2}(日)?(\([日月火水木金土]\)|[日月火水木金土]曜日)?)$/; 
+            // 【追加】会話の誤認識を物理的に防ぐための「時刻から始まるメッセージ行」判定用の正規表現
+            const msgRowRegex = /^(\d{1,2}:\d{2})[\t\s]/;
+
             const reg1 = /^(\d{1,2}:\d{2})[\t]([^\t\n]+)[\t](.*)$/; 
             const reg2 = /^(\d{1,2}:\d{2})\s+([^\s]+)\s+(.*)$/;
             let ref = null;
@@ -1920,21 +1925,28 @@
                 const line = lines[i]; const trim = line.trim(); 
                 if (trim === "") { if (ref) ref.body += '<br>'; continue; }
                 
-                let m = line.match(reg1) || line.match(reg2);
-                if (m) {
-                    const [_, time, sender, body] = m; const cleanS = sender.trim(); counts[cleanS] = (counts[cleanS] || 0) + 1;
-                    let cleanB = body.replace(/\\n/g, '<br>'); 
-                    if (cleanB === '[スタンプ]' || cleanB === '[Sticker]') { cleanB = '🎨 [スタンプ]'; } 
-                    else if (cleanB === '[写真]' || cleanB === '[Photo]') { cleanB = '📸 [写真]'; } 
-                    else if (cleanB === '[動画]' || cleanB === '[Video]') { cleanB = '🎬 [動画]'; }
-                    const newMsg = { type: 'msg', time: time.trim(), sender: cleanS, body: cleanB }; 
-                    messages.push(newMsg); 
-                    ref = newMsg;
+                // 優先条件①：時刻から始まっている行なら絶対に会話メッセージとして処理（日付誤認の防止）
+                if (msgRowRegex.test(trim)) {
+                    let m = line.match(reg1) || line.match(reg2);
+                    if (m) {
+                        const [_, time, sender, body] = m; const cleanS = sender.trim(); counts[cleanS] = (counts[cleanS] || 0) + 1;
+                        let cleanB = body.replace(/\\n/g, '<br>'); 
+                        if (cleanB === '[スタンプ]' || cleanB === '[Sticker]') { cleanB = '🎨 [スタンプ]'; } 
+                        else if (cleanB === '[写真]' || cleanB === '[Photo]') { cleanB = '📸 [写真]'; } 
+                        else if (cleanB === '[動画]' || cleanB === '[Video]') { cleanB = '🎬 [動画]'; }
+                        const newMsg = { type: 'msg', time: time.trim(), sender: cleanS, body: cleanB }; 
+                        messages.push(newMsg); 
+                        ref = newMsg;
+                    } else if (ref) {
+                        ref.body += '<br>' + line;
+                    }
                 } 
+                // 優先条件②：メッセージの形をしておらず、厳格な日付スタンプ行に完全一致する場合のみ日付として処理
                 else if (dateRegex.test(trim)) { 
                     messages.push({ type: 'date', text: trim }); 
                     ref = null; 
                 } 
+                // それ以外の行（改行された複数行メッセージの続きなど）
                 else if (ref) { 
                     ref.body += '<br>' + line; 
                 } else if (messages.length > 0 && messages[messages.length - 1].type === 'msg') { 
