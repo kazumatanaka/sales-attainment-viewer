@@ -2027,7 +2027,7 @@
                     getEl('albumCountLabel').innerText = `${albumImages.length} 枚`;
                     gridContainer.innerHTML = '';
 
-(async () => {
+                 (async () => {
     for (let idx = 0; idx < albumImages.length; idx++) {
         const img = albumImages[idx];
         const card = gridContainer.children[idx]; // すでに生成されているカードを取得
