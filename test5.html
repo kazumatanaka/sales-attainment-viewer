@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sales Attainment Viewer v84</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* テーマごとの背景色設定 */
+        .bg-theme-blue { background-color: #92afd9 !important; }
+        .bg-theme-dark { background-color: #1a1a1a !important; }
+        .bg-theme-pink { background-color: #fbcfe8 !important; }
+        .bg-theme-beige { background-color: #f5f5dc !important; }
+
+        /* テーマ連動型のヘッダー背景色設定 */
+        .header-blue { background-color: #92afd9; color: #374151; }
+        .header-dark { background-color: #1a1a1a; color: #ffffff; }
+        .header-pink { background-color: #fbcfe8; color: #374151; }
+        .header-beige { background-color: #f5f5dc; color: #374151; }
+
+        /* テーマ連動型のヘッダーサブテキストの文字色設定 */
+        .sub-blue { color: #6b7280; }
+        .sub-dark { color: #9ca3af; }
+        .sub-pink { color: #6b7280; }
+        .sub-beige { color: #6b7280; }
+
+        /* 吹き出しの基本スタイル（Lightテーマ用） */
+        .bubble-other {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border-radius: 16px 20px 20px 20px !important;
+            padding: 8px 14px !important;
+            box-shadow: none !important;
+            line-height: 1.4 !important;
+            letter-spacing: 0.02em;
+        }
+        .bubble-me {
+            background-color: #9de693 !important;
+            color: #000000 !important;
+            border-radius: 20px 16px 20px 20px !important;
+            padding: 8px 14px !important;
+            box-shadow: none !important;
+            line-height: 1.4 !important;
+            letter-spacing: 0.02em;
+        }
+
+        /* しっぽ（ヒゲ）の形状 */
+        .bubble-me::after {
+            content: ""; position: absolute; top: 10px; right: -6px;
+            border-width: 5px 0 5px 7px; border-style: solid;
+            border-color: transparent transparent transparent #9de693 !important;
+        }
+        .bubble-other::after {
+            content: ""; position: absolute; top: 10px; left: -6px;
+            border-width: 5px 7px 5px 0; border-style: solid;
+            border-color: transparent #ffffff transparent transparent !important;
+        }
+
+        /* 文字色（既読・時間・名前）の基本 */
+        .time-text { color: #546173 !important; font-weight: 500; } 
+        .name-text { color: #ffffff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.15); } 
+
+        /* ダークモード時の着色上書き */
+        .text-xs.bg-theme-dark .bubble-other,
+        .text-sm.bg-theme-dark .bubble-other,
+        .text-base.bg-theme-dark .bubble-other {
+            background-color: #2a2a2a !important;
+            color: #ffffff !important;
+        }
+        .text-xs.bg-theme-dark .bubble-other::after,
+        .text-sm.bg-theme-dark .bubble-other::after,
+        .text-base.bg-theme-dark .bubble-other::after {
+            border-color: transparent #2a2a2a transparent transparent !important;
+        }
+
+        .text-xs.bg-theme-dark .bubble-me,
+        .text-sm.bg-theme-dark .bubble-me,
+        .text-base.bg-theme-dark .bubble-me {
+            background-color: #9de693 !important; 
+            color: #000000 !important;
+        }
+        .text-xs.bg-theme-dark .bubble-me::after,
+        .text-sm.bg-theme-dark .bubble-me::after,
+        .text-base.bg-theme-dark .bubble-me::after {
+            border-color: transparent transparent transparent #9de693 !important;
+        }
+
+        .bg-theme-dark .time-text { color: #8a8a8a !important; }
+        .bg-theme-dark .name-text { color: #a0a0a0 !important; text-shadow: none; }
+
+        html, body {
+            overflow: hidden !important;
+            position: relative;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ダミー表示ゾーン用安定化スタイル */
+        .allow-select-and-scroll {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        /* --- ここから常駐ステルスレイヤー用CSS --- */
+        .stealth-layer-standby {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            will-change: opacity; 
+            transform: translateZ(0); 
+            visibility: visible !important; 
+            display: flex !important; 
+        }
+
+        .stealth-layer-active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transition: none !important; 
+            z-index: 99999 !important;
+            visibility: visible !important;
+            display: flex !important;
+        }
+        /* ------------------------------------------- */
+
+        /* カルーセル用スタイル */
+        #lightboxCarouselTrack {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            will-change: transform;
+        }
+        .carousel-slide {
+            width: 33.333333%;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans h-screen flex flex-col overflow-hidden select-none w-full max-w-full m-0 p-0">
+
+    <div id="biometricLockScreen" class="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center text-white stealth-layer-active">
+        
+        <div id="lockMainZone" class="text-center space-y-6 max-w-sm px-6 w-full block flex-shrink-0">
+            <div class="pt-8">
+                <h2 class="text-xl font-bold tracking-wider text-blue-400">Internal Data</h2>
+                <p class="text-xs text-gray-400 mt-2" id="lockMessage">アクセスを許可するには指紋（生体）認証が必要です。</p>
+            </div>
+            
+            <button id="dummyAuthBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 px-4 rounded-full font-bold shadow-md transition cursor-pointer">
+                認証を開始する
+            </button>
+            
+            <div class="pt-2">
+                <p id="realAuthTrigger" class="text-[11px] text-gray-500 hover:text-gray-400 active:scale-98 transition-all cursor-pointer select-none inline-block">
+                    The data on this site is strictly confidential.
+                </p>
+            </div>
+        </div>
+
+        <div id="dummyDataZone" class="hidden w-full max-w-2xl px-4 py-8 flex flex-col items-center space-y-6 max-h-full allow-select-and-scroll">
+            <div class="text-center flex-shrink-0">
+                <h2 class="text-lg font-bold tracking-wider text-emerald-400">Internal Data Summary</h2>
+                <p class="text-xs text-gray-400 mt-1">Sector Analysis Report (Live)</p>
+            </div>
+            
+            <div class="w-full overflow-x-auto bg-slate-800 rounded-xl border border-slate-700 shadow-xl touch-pan-x touch-pan-y select-text">
+                <table class="w-full text-left text-xs font-mono min-w-[500px]">
+                    <thead class="bg-slate-700/50 text-gray-300 border-b border-slate-700 select-none">
+                        <tr>
+                            <th class="p-3 sticky left-0 bg-slate-800">Category</th>
+                            <th class="p-3">Sector1</th>
+                            <th class="p-3">Sector2</th>
+                            <th class="p-3">Sector3</th>
+                            <th class="p-3">Sector4</th>
+                            <th class="p-3 font-bold text-emerald-400">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/40 text-gray-300 select-text">
+                        <tr class="hover:bg-slate-700/20">
+                            <td class="p-3 font-sans font-medium text-blue-400 sticky left-0 bg-slate-800 select-none">Search</td>
+                            <td class="p-3">99.8</td>
+                            <td class="p-3">102.1</td>
+                            <td class="p-3">100.1</td>
+                            <td class="p-3">99.1</td>
+                            <td class="p-3 font-bold">101.1</td>
+                        </tr>
+                        <tr class="hover:bg-slate-700/20">
+                            <td class="p-3 font-sans font-medium text-blue-400 sticky left-0 bg-slate-800 select-none">YouTube</td>
+                            <td class="p-3">102.1</td>
+                            <td class="p-3">103.9</td>
+                            <td class="p-3">89.8</td>
+                            <td class="p-3">95.3</td>
+                            <td class="p-3 font-bold">99.8</td>
+                        </tr>
+                        <tr class="hover:bg-slate-700/20">
+                            <td class="p-3 font-sans font-medium text-blue-400 sticky left-0 bg-slate-800 select-none">Display</td>
+                            <td class="p-3">89.6</td>
+                            <td class="p-3">92.3</td>
+                            <td class="p-3">97.6</td>
+                            <td class="p-3">94.6</td>
+                            <td class="p-3 font-bold">93.2</td>
+                        </tr>
+                        <tr class="bg-slate-700/30 text-emerald-400 font-bold border-t border-slate-600">
+                            <td class="p-3 font-sans sticky left-0 bg-slate-800 select-none">Total</td>
+                            <td class="p-3">99.3</td>
+                            <td class="p-3">100.6</td>
+                            <td class="p-3">98.9</td>
+                            <td class="p-3">96.8</td>
+                            <td class="p-3 text-white">99.6</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center space-y-1 flex-shrink-0 select-none">
+                <p class="text-[10px] text-gray-500">Session ID: local_active_report_secured</p>
+                <p class="text-[9px] text-slate-600">Encrypted internal endpoint connection stable.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="appBodyContent" class="w-full h-full flex flex-col overflow-hidden">
+        <header id="mainHeader" class="header-blue h-14 flex items-center justify-between px-3 z-50 shadow-sm w-full fixed top-0 left-0 transition-colors duration-200">
+            <div class="flex items-center space-x-1.5">
+                <button id="backBtn" class="p-2 -ml-2 hover:bg-black/5 rounded-full transition flex items-center justify-center cursor-pointer" title="初期画面に戻る">
+                    <svg class="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <div id="titleArea" class="cursor-pointer hover:bg-black/5 active:scale-95 transition-all p-1.5 rounded-lg select-none">
+                    <h1 id="talkTitle" class="font-bold text-base leading-tight">Line Talk Viewer</h1>
+                    <p id="talkSub" class="text-[10px] sub-blue leading-none mt-0.5">待機中</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-0.5 select-none pr-1">
+                <button id="searchToggleBtn" class="w-10 h-10 p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition cursor-pointer hidden">
+                    <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10.5" cy="10.5" r="7.5"></circle>
+                        <line x1="21" y1="21" x2="15.8" y2="15.8"></line>
+                        <path d="M10.5 7v3.5l2 2" stroke-width="2"></path>
+                    </svg>
+                </button>
+                
+                <div id="calendarWrapper" class="relative hidden w-10 h-10">
+                    <input type="date" id="jumpDatePicker" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="日付を指定してジャンプ">
+                    <button id="calendarBtn" class="w-full h-full p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition pointer-events-none">
+                        <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="16" rx="4"></rect>
+                            <path d="M8 2v4M16 2v4"></path>
+                            <text x="12" y="17" font-size="9" font-family="sans-serif" font-weight="bold" text-anchor="middle" fill="currentColor" stroke="none">31</text>
+                        </svg>
+                    </button>
+                </div>
+
+                <button id="menuBtn" class="w-10 h-10 p-2 flex items-center justify-center hover:bg-black/5 rounded-full transition cursor-pointer z-10">
+                    <svg class="w-full h-full pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div id="headerSearchBox" class="bg-[#1a1a1a] border-b border-zinc-800 p-3 shadow-md z-40 hidden flex flex-col w-full fixed top-14 left-0">
+            <div class="flex items-center space-x-3 w-full">
+                <div class="relative flex-1 flex items-center bg-[#2a2a2a] rounded-lg px-3 py-1.5">
+                    <svg class="w-4 h-4 text-zinc-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchKeyword" placeholder="検索" class="w-full bg-transparent text-sm text-white focus:outline-none placeholder-zinc-500">
+                    <button id="searchClearQueryBtn" class="text-zinc-400 hover:text-white text-xs font-bold px-1 ml-1 hidden">✕</button>
+                </div>
+                <button id="searchCloseBtn" class="text-white text-sm font-medium px-1 cursor-pointer flex-shrink-0">キャンセル</button>
+            </div>
+            <div id="searchResultsContainer" class="mt-3 overflow-y-auto hidden flex flex-col w-full max-h-[70vh]">
+                <div id="searchCountLabel" class="text-[11px] font-bold text-zinc-400 tracking-wider px-2 py-1.5 border-b border-zinc-800"></div>
+                <div id="searchResults" class="divide-y divide-zinc-800/60 text-sm bg-[#1a1a1a] text-white"></div>
+            </div>
+        </div>
+
+        <div class="flex-1 w-full pt-14 overflow-hidden relative flex z-10">
+            
+            <main id="chatContainer" class="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-blue h-full w-full relative">
+                <div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner">
+                    <p class="font-bold mb-1">Google Drive & LINE Viewer v84</p>
+                    <p id="guideText" class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークフォルダおよびアルバムフォルダを選択してください。</p>
+                </div>
+            </main>
+
+            <div id="overlay" class="fixed inset-0 bg-black/30 z-20 hidden transition-opacity w-full h-full"></div>
+
+            <aside id="drawerMenu" class="absolute top-0 right-0 h-full w-80 bg-white shadow-xl z-30 transform translate-x-full hidden transition-all duration-300 ease-in-out flex flex-col border-l border-gray-200 text-black">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 select-none">
+                    <h2 class="font-bold text-gray-700 text-sm">各種設定 & 管理機能</h2>
+                    <button id="closeMenuBtn" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1 cursor-pointer">✕</button>
+                </div>
+                
+                <div class="p-4 flex-1 overflow-y-auto space-y-4 text-sm flex flex-col min-h-0">
+                    <div class="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex-shrink-0">
+                        <div id="driveExplorerZone" class="space-y-1.5 flex flex-col min-h-0">
+                            <div id="driveAccordionHeader" class="flex items-center justify-between cursor-pointer select-none">
+                                <label class="block text-[11px] font-bold text-gray-500 pointer-events-none">ドライブを探索</label>
+                                <span id="driveAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▲</span>
+                            </div>
+                            <div id="driveAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
+                                <div id="breadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
+                                    マイ ドライブ
+                                </div>
+                                <div id="explorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
+                                    <p id="explorerPlaceholder" class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 flex-shrink-0">
+                        <label class="block text-xs font-bold text-gray-500">ローカルから複数読み込み</label>
+                        <input type="file" id="fileInput" accept=".txt" multiple class="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer"/>
+                    </div>
+
+                    <div class="space-y-1 flex-shrink-0 pt-2 border-t border-gray-200">
+                        <label class="block text-xs font-bold text-gray-500">アナリティクス</label>
+                        <button id="openAnalysisBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer">
+                            📊 トーク分析レポートを表示
+                        </button>
+                    </div>
+
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-3 flex-shrink-0">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1.5">🎨 背景着せ替え</label>
+                            <div class="grid grid-cols-4 gap-1">
+                                <button id="theme-blue" class="bg-[#7494c0] text-white text-[10px] py-1 rounded font-medium border border-black/10 cursor-pointer">ブルー</button>
+                                <button id="theme-dark" class="bg-[#0b0b0b] text-white text-[10px] py-1 rounded font-medium border border-black/10 cursor-pointer">ダーク</button>
+                                <button id="theme-pink" class="bg-[#fbcfe8] text-gray-700 text-[10px] py-1 rounded font-medium border border-black/10 cursor-pointer">ピンク</button>
+                                <button id="theme-beige" class="bg-[#f5f5dc] text-gray-700 text-[10px] py-1 rounded font-medium border border-black/10 cursor-pointer">ベージュ</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1.5">🔍 文字サイズ変更</label>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button id="size-sm" class="bg-white border border-gray-300 text-gray-700 text-xs py-1 rounded cursor-pointer">小</button>
+                                <button id="size-md" class="bg-blue-600 border border-blue-600 text-white text-xs py-1 rounded font-bold cursor-pointer">中</button>
+                                <button id="size-lg" class="bg-white border border-gray-300 text-gray-700 text-xs py-1 rounded cursor-pointer">大</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 flex-shrink-0">
+                        <label class="block text-xs font-bold text-gray-500">「自分」の設定</label>
+                        <select id="meSelector" class="w-full text-xs border border-gray-300 rounded p-2 bg-white text-black" disabled>
+                            <option value="">ファイルを読み込んでください</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2 pt-3 border-t border-gray-200 flex-shrink-0">
+                        <div id="albumExplorerZone" class="space-y-1.5 flex flex-col min-h-0 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">
+                            <div id="albumAccordionHeader" class="flex items-center justify-between cursor-pointer select-none">
+                                <label class="block text-xs font-bold text-gray-500 pointer-events-none">🖼️ フォトアルバム連携</label>
+                                <span id="albumAccordionIcon" class="text-xs text-gray-400 transition-transform duration-200">▲</span>
+                            </div>
+                            <div id="albumAccordionContent" class="space-y-1.5 flex flex-col min-h-0 hidden">
+                                <div id="albumBreadcrumb" class="text-xs bg-gray-100 p-2 rounded border border-gray-200 text-gray-600 font-medium break-all select-none">
+                                    マイ ドライブ
+                                </div>
+                                <div id="albumExplorerList" class="border border-gray-200 rounded bg-white divide-y divide-gray-100 max-h-40 overflow-y-auto text-xs">
+                                    <p class="text-gray-400 text-center py-4">フォルダを読み込んでいます...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="albumTargetStatus" class="text-[11px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-200 break-all">
+                            アルバムフォルダ: 未設定
+                        </div>
+                        <button id="openAlbumBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-2 px-3 rounded font-bold shadow-sm transition cursor-pointer hidden">
+                            🌸 アルバムを見る
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div id="analysisModal" class="fixed inset-0 bg-black/50 z-[99999] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300" id="analysisModalContent">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+                <h2 class="font-bold text-gray-800 text-lg">📊 トーク分析レポート</h2>
+                <button id="closeAnalysisBtn" class="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer leading-none">&times;</button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-1 bg-gray-50 select-text">
+                <div class="w-full overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <table class="w-full text-left text-sm whitespace-nowrap" id="resultTable">
+                        <thead class="bg-gray-100 text-gray-700 border-b border-gray-200 sticky top-0 shadow-sm" id="tableHead">
+                            </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-100 text-gray-600">
+                            </tbody>
+                        <tfoot id="tableFoot" class="bg-gray-100 text-gray-800 font-bold border-t-2 border-gray-300 sticky bottom-0">
+                            </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="albumModal" class="fixed inset-0 bg-black/90 z-[99999] hidden flex flex-col opacity-0 transition-opacity duration-300">
+        <header class="h-14 bg-zinc-950 flex items-center justify-between px-4 border-b border-zinc-800 text-white flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="text-base font-bold tracking-wide">🖼️ Photo Album</span>
+                <span id="albumCountLabel" class="text-xs text-zinc-400 font-mono"></span>
+            </div>
+            <button id="closeAlbumModalBtn" class="text-zinc-400 hover:text-white text-2xl font-bold p-2 cursor-pointer leading-none">&times;</button>
+        </header>
+        <div id="albumGridContainer" class="flex-1 overflow-y-auto p-3 bg-zinc-900 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 auto-rows-max align-content-start">
+            </div>
+    </div>
+
+    <div id="lightboxModal" class="fixed inset-0 bg-black/95 z-[100000] hidden flex flex-col justify-center items-center opacity-0 transition-opacity duration-200 select-none">
+        <button id="closeLightboxBtn" class="absolute top-4 right-4 text-white/70 hover:text-white text-3xl font-bold z-[100005] p-2 cursor-pointer bg-black/20 rounded-full w-12 h-12 flex items-center justify-center">&times;</button>
+        
+        <button id="prevLightboxBtn" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/80 bg-black/40 hover:bg-black/60 rounded-full w-12 h-12 flex items-center justify-center z-[100005] font-bold text-xl transition cursor-pointer">&#10094;</button>
+        <button id="nextLightboxBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/80 bg-black/40 hover:bg-black/60 rounded-full w-12 h-12 flex items-center justify-center z-[100005] font-bold text-xl transition cursor-pointer">&#10095;</button>
+
+        <div class="w-full h-full relative overflow-hidden" id="lightboxSwipeZone">
+            <div id="lightboxCarouselTrack">
+                <div class="carousel-slide" id="carouselSlideLeft"></div>
+                <div class="carousel-slide" id="carouselSlideCenter"></div>
+                <div class="carousel-slide" id="carouselSlideRight"></div>
+            </div>
+            <p id="lightboxFilename" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-zinc-400 text-xs tracking-wide truncate max-w-md px-4 text-center z-[100005] pointer-events-none"></p>
+        </div>
+    </div>
+
+    <script>
+        // --- GAS API Config ---
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyT8dKd9dqB5e8uZU-ekhie6O8cgSC9HcRZ3223E9EmzrP_2XehVyySF9tBEvvr9Qsaew/exec';
+        let globalSecretKey = ''; 
+
+        const DEFAULT_PARTNER_AVATAR = "default.png";
+
+        let currentThemeName = 'blue';
+        let hasDriveCustomImage = false;
+
+        let globalMessages = []; 
+        let filteredMessages = []; 
+        let currentMe = "";
+        let globalSenders = [];
+
+        const PAGE_SIZE = 300; 
+        let visibleMessages = []; 
+        let currentLoadedIndex = 0; 
+        let currentEndLoadedIndex = 0; 
+        let isLoadingMore = false; 
+
+        let currentFolderId = 'root'; 
+        let folderHistory = [{ id: 'root', name: 'マイ ドライブ' }];
+        let currentFolderFiles = []; 
+        let currentFolderImageFile = null; 
+
+        let isCamouflageMode = false;
+        let actualPartnerNames = "Line Talk Viewer"; 
+
+        let partnerCustomAvatarUrl = "";
+
+        const getEl = (id) => document.getElementById(id);
+
+        const CONFIG_KEY = 'bio_auth_credential_id';
+        const SECRET_STORAGE_KEY = 'bio_auth_secret_key'; 
+        let isCurrentlyAuthenticated = false; 
+        let isProcessingBiometrics = false; 
+
+        // 追加: フォトアルバム用ステート管理変数
+        let albumFolderId = localStorage.getItem('album_folder_id') || '';
+        let albumFolderName = localStorage.getItem('album_folder_name') || '';
+        let albumImages = []; 
+        let currentLightboxIndex = 0;
+
+        // 追加: アルバム選択用のDrive探索ステート
+        let albumDriveFolderId = 'root';
+        let albumFolderHistory = [{ id: 'root', name: 'マイ ドライブ' }];
+
+        // カルーセル制御用ステート
+        let carouselStartX = 0;
+        let carouselCurrentX = 0;
+        let isCarouselDragging = false;
+        let carouselTrackWidth = 0;
+
+        // ユーザーにSECRET_KEYの入力を求め、保存する共通関数
+        function promptAndSaveSecretKey(message = "GoogleアカウントのSECRET_KEYを入力してください。") {
+            const inputKey = prompt(message);
+            if (inputKey && inputKey.trim() !== "") {
+                globalSecretKey = inputKey.trim();
+                localStorage.setItem(SECRET_STORAGE_KEY, globalSecretKey);
+                return true;
+            }
+            return false;
+        }
+
+        // --- GAS Fetcher Function ---
+        async function fetchFromGas(action, params = {}) {
+            if (!globalSecretKey) {
+                globalSecretKey = localStorage.getItem(SECRET_STORAGE_KEY) || '';
+            }
+
+            if (!globalSecretKey) {
+                if (!promptAndSaveSecretKey("SECRET_KEYが登録されていません。再度入力してください。")) {
+                    throw new Error("SECRET_KEY missing");
+                }
+            }
+
+            let url = new URL(GAS_URL);
+            url.searchParams.append("key", globalSecretKey);
+            url.searchParams.append("action", action);
+            for (let k in params) {
+                url.searchParams.append(k, params[k]);
+            }
+            const res = await fetch(url.toString(), { redirect: "follow" });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            return data;
+        }
+
+        // --- Biometrics & Security ---
+        function bufferToBase64Url(buffer) {
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+        function base64UrlToBuffer(base64url) {
+            const padding = '='.repeat((4 - base64url.length % 4) % 4);
+            const base64 = (base64url + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const raw = window.atob(base64);
+            const buffer = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) buffer[i] = raw.charCodeAt(i);
+            return buffer.buffer;
+        }
+
+        // --- 送信者単位でアイコン画像URLを動的に判定する関数 ---
+        function getAvatarUrlForSender(senderName) {
+            if (senderName === 'kazuma') {
+                return currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png';
+            }
+            if (senderName === 'Mai') {
+                return partnerCustomAvatarUrl || (currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png');
+            }
+            return currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png';
+        }
+
+        function forceLockScreen() {
+            isCurrentlyAuthenticated = false;
+            
+            // レポート表示中であっても瞬時にモーダルを隠してロックへ復帰させる
+            let modal = getEl('analysisModal');
+            if (modal) modal.classList.add('hidden');
+
+            // アルバム関連モーダルも隠す
+            if (getEl('albumModal')) getEl('albumModal').classList.add('hidden');
+            if (getEl('lightboxModal')) getEl('lightboxModal').classList.add('hidden');
+
+            let lockScreen = getEl('biometricLockScreen');
+            if (lockScreen) {
+                lockScreen.classList.remove('stealth-layer-standby');
+                lockScreen.classList.add('stealth-layer-active');
+                
+                getEl('lockMainZone').classList.remove('hidden');
+                getEl('lockMainZone').style.display = 'block';
+                getEl('dummyDataZone').classList.add('hidden');
+                getEl('dummyDataZone').style.display = 'none';
+            }
+        }
+
+        async function handleAuthAttempt(targetMode) {
+            if (isProcessingBiometrics) return; 
+            
+            const storedCredId = localStorage.getItem(CONFIG_KEY);
+            const storedSecretKey = localStorage.getItem(SECRET_STORAGE_KEY);
+
+            if (!storedCredId || !storedSecretKey) {
+                if(getEl('lockMessage')) getEl('lockMessage').innerText = "初回登録：生体認証をデバイスに紐付けます...";
+                await registerBiometrics(targetMode);
+                return;
+            }
+
+            try {
+                isProcessingBiometrics = true;
+                const challenge = new Uint8Array(32);
+                window.crypto.getRandomValues(challenge);
+
+                const publicKeyCredentialRequestOptions = {
+                    challenge: challenge,
+                    allowCredentials: [{
+                        id: base64UrlToBuffer(storedCredId),
+                        type: 'public-key'
+                    }],
+                    userVerification: "required",
+                    timeout: 60000
+                };
+
+                await navigator.credentials.get({ publicKey: publicKeyCredentialRequestOptions });
+                
+                globalSecretKey = localStorage.getItem(SECRET_STORAGE_KEY) || '';
+
+                if (targetMode === 'dummy') {
+                    getEl('lockMainZone').classList.add('hidden');
+                    getEl('lockMainZone').style.display = 'none';
+                    getEl('dummyDataZone').classList.remove('hidden');
+                    getEl('dummyDataZone').style.display = 'flex';
+                    isCurrentlyAuthenticated = false; 
+                } else if (targetMode === 'real') {
+                    unlockScreen();
+                }
+            } catch (err) {
+                console.error("認証失敗:", err);
+                if(getEl('lockMessage')) getEl('lockMessage').innerText = "認証に失敗したか、キャンセルされました。";
+                                        
+                getEl('lockMainZone').classList.remove('hidden');
+                getEl('lockMainZone').style.display = 'block';
+                getEl('dummyDataZone').classList.add('hidden');
+                getEl('dummyDataZone').style.display = 'none';
+            } finally {
+                setTimeout(() => { isProcessingBiometrics = false; }, 500);
+            }
+        }
+
+        async function registerBiometrics(targetMode) {
+            try {
+                if (!promptAndSaveSecretKey("GoogleアカウントのSECRET_KEYを入力してください。")) {
+                    alert("SECRET_KEYは必須です。登録を中断します。");
+                    if(getEl('lockMessage')) getEl('lockMessage').innerText = "登録がキャンセルされました。";
+                    return;
+                }
+
+                const challenge = new Uint8Array(32);
+                window.crypto.getRandomValues(challenge);
+                const userId = new Uint8Array(16);
+                window.crypto.getRandomValues(userId);
+
+                const publicKeyCredentialCreationOptions = {
+                    challenge: challenge,
+                    rp: { name: "LINE Talk Viewer", id: window.location.hostname },
+                    user: { id: userId, name: "user@lineviewer.local", displayName: "Local User" },
+                    pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                    authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                    timeout: 60000
+                };
+
+                const credential = await navigator.credentials.create({ publicKey: publicKeyCredentialCreationOptions });
+                const credIdBase64 = bufferToBase64Url(credential.rawId);
+                                        
+                localStorage.setItem(CONFIG_KEY, credIdBase64);
+                                        
+                if (targetMode === 'dummy') {
+                    getEl('lockMainZone').style.display = 'none';
+                    getEl('dummyDataZone').style.display = 'flex';
+                } else {
+                    unlockScreen();
+                }
+            } catch (err) {
+                console.error("登録失敗:", err);
+                if(getEl('lockMessage')) getEl('lockMessage').innerText = "生体認証の登録に失敗しました。";
+            }
+        }
+
+        function unlockScreen() {
+            isCurrentlyAuthenticated = true;
+                                                                                
+            const lockScreen = getEl('biometricLockScreen');
+            if (lockScreen) {
+                lockScreen.style.transition = 'opacity 0.3s ease-out';
+                lockScreen.classList.remove('stealth-layer-active');
+                lockScreen.classList.add('stealth-layer-standby');
+                                                                                                                                                            
+                setTimeout(() => { 
+                    lockScreen.style.transition = 'none'; 
+                    autoCheckNewFiles();
+                }, 300);
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') forceLockScreen(); });
+        window.addEventListener('pagehide', () => forceLockScreen());
+        document.addEventListener('freeze', () => forceLockScreen()); 
+        window.addEventListener('blur', () => { if (!isProcessingBiometrics) forceLockScreen(); });
+        window.addEventListener('focus', () => { if (!isCurrentlyAuthenticated && !isProcessingBiometrics) forceLockScreen(); });
+        window.addEventListener('pageshow', (e) => { if (e.persisted && !isCurrentlyAuthenticated) forceLockScreen(); });
+        document.addEventListener('touchcancel', () => { if (!isProcessingBiometrics) forceLockScreen(); }, { passive: true });
+        document.addEventListener('mouseleave', (e) => { if (e.clientY <= 0 || e.clientY >= window.innerHeight - 10) { if (!isProcessingBiometrics) forceLockScreen(); } });
+        window.addEventListener('popstate', () => { if (!isProcessingBiometrics) forceLockScreen(); });
+
+        // --- Core UI Functions ---
+        function toggleDrawer(show) {
+            const drawer = getEl('drawerMenu');
+            const overlay = getEl('overlay');
+            if (!drawer || !overlay) return;
+
+            if (show) {
+                // ドロワー（メニュー）を開くなら、検索窓は隠す
+                toggleHeaderBox(false);
+
+                drawer.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    drawer.classList.remove('translate-x-full');
+                    drawer.classList.add('translate-x-0');
+                    overlay.classList.remove('opacity-0');
+                    overlay.classList.add('opacity-100');
+                }, 10);
+            } else {
+                drawer.classList.remove('translate-x-0');
+                drawer.classList.add('translate-x-full');
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    drawer.classList.add('hidden');
+                    overlay.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function getThemeDefaultAvatar() {
+            return currentThemeName === 'dark' ? 'default-dark.png' : 'default-light.png';
+        }
+
+        function getFinalAvatarUrl() {
+            if (hasDriveCustomImage && partnerCustomAvatarUrl) {
+                return partnerCustomAvatarUrl;
+            }
+            return getThemeDefaultAvatar();
+        }
+
+        function returnToInitialWelcome() {
+            if (getEl('calendarWrapper')) getEl('calendarWrapper').classList.add('hidden');
+            if (getEl('searchToggleBtn')) getEl('searchToggleBtn').classList.add('hidden');
+            toggleHeaderBox(false);
+
+            actualPartnerNames = "Line Talk Viewer";
+            isCamouflageMode = false;
+            applyTitle();
+            
+            const sub = getEl('talkSub');
+            if (sub) {
+                sub.innerText = "待機中";
+            }
+
+            const container = getEl('chatContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner">
+                        <p class="font-bold mb-1">Google Drive & LINE Viewer v84</p>
+                        <p id="guideText" class="text-xs text-white/80">
+                            表示をリセットしました。トークを確認するには右上のメニューからフォルダまたはファイルを再選択してください。
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function setupIndependentMenuEvents() {
+            const menuBtn = getEl('menuBtn');
+            const closeBtn = getEl('closeMenuBtn');
+            const overlay = getEl('overlay');
+            const drawer = getEl('drawerMenu');
+
+            // ハンバーガーメニュー自体のタップ時の挙動（開いていれば閉じ、閉じていれば開く）
+            const toggleMenu = (e) => { 
+                if (e) { e.preventDefault(); e.stopPropagation(); } 
+                if (drawer && !drawer.classList.contains('hidden')) {
+                    toggleDrawer(false); // 開いているので閉じる
+                } else {
+                    toggleDrawer(true);  // 閉じているので開く
+                }
+            };
+            const closeMenu = (e) => { if (e) { e.preventDefault(); e.stopPropagation(); } toggleDrawer(false); };
+
+            if (menuBtn) {
+                menuBtn.onclick = null; 
+                menuBtn.removeEventListener('click', toggleMenu); menuBtn.removeEventListener('touchend', toggleMenu);
+                menuBtn.addEventListener('click', toggleMenu); menuBtn.addEventListener('touchend', toggleMenu);
+            }
+
+            if (closeBtn) {
+                closeBtn.onclick = null; closeBtn.removeEventListener('click', closeMenu); closeBtn.removeEventListener('touchend', closeMenu);
+                closeBtn.addEventListener('click', closeMenu); closeBtn.addEventListener('touchend', closeMenu);
+            }
+
+            if (overlay) {
+                overlay.onclick = null; overlay.removeEventListener('click', closeMenu); overlay.removeEventListener('touchend', closeMenu);
+                overlay.addEventListener('click', closeMenu); overlay.addEventListener('touchend', closeMenu);
+            }
+        }
+
+        document.addEventListener("click", async (e) => {
+            const targetId = e.target.id;
+            
+            if (targetId === "menuBtn" || e.target.closest("#menuBtn")) return;
+
+            if (targetId === "backBtn" || e.target.closest("#backBtn")) {
+                e.preventDefault(); returnToInitialWelcome(); return;
+            }
+
+            if (targetId === "searchToggleBtn" || e.target.closest("#searchToggleBtn")) { toggleHeaderBox(); return; }
+            if (targetId === "searchCloseBtn") { toggleHeaderBox(false); return; }
+
+            if (targetId === "calendarBtn" || e.target.closest("#calendarBtn")) {
+                // カレンダーを開く時は、検索窓とドロワーメニュー（ハンバーガー）を排他クローズする
+                toggleHeaderBox(false);
+                toggleDrawer(false);
+                                        
+                const picker = getEl('jumpDatePicker');
+                if (picker && typeof picker.showPicker === 'function') picker.showPicker();
+                return;
+            }
+
+            if (e.target.closest("#titleArea")) {
+                if (globalMessages.length === 0) return;
+                isCamouflageMode = !isCamouflageMode;
+                applyTitle();
+                return;
+            }
+            if (targetId === "theme-blue") changeTheme('blue');
+            if (targetId === "theme-dark") changeTheme('dark');
+            if (targetId === "theme-pink") changeTheme('pink');
+            if (targetId === "theme-beige") changeTheme('beige');
+            if (targetId === "size-sm") changeFontSize('sm');
+            if (targetId === "size-md") changeFontSize('md');
+            if (targetId === "size-lg") changeFontSize('lg');
+            if (targetId === "searchBtn") triggerSearch();
+        });
+
+        // 検索窓入力欄に関するイベント設定
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchInput = getEl('searchKeyword');
+            if (searchInput) {
+                searchInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        triggerSearch();
+                    }
+                });
+                // 入力内容に合わせて「✕（クリア）」ボタンの表示を制御
+                searchInput.addEventListener("input", () => {
+                    const clearBtn = getEl('searchClearQueryBtn');
+                    if (clearBtn) {
+                        clearBtn.classList.toggle('hidden', searchInput.value.trim() === '');
+                    }
+                });
+                // 検索窓を再度タップ（フォーカス）した時に結果があれば一覧を再表示する挙動を追加
+                searchInput.addEventListener("click", () => {
+                    const resContainer = getEl('searchResultsContainer');
+                    const resList = getEl('searchResults');
+                    if (resContainer && resList && resList.children.length > 0) {
+                        resContainer.classList.remove('hidden');
+                    }
+                });
+            }
+            
+            const clearBtn = getEl('searchClearQueryBtn');
+            if (clearBtn) {
+                clearBtn.onclick = () => {
+                    if (searchInput) {
+                        searchInput.value = '';
+                        searchInput.focus();
+                    }
+                    clearBtn.classList.add('hidden');
+                    const res = getEl('searchResults');
+                    const resContainer = getEl('searchResultsContainer');
+                    if (res) res.innerHTML = '';
+                    if (resContainer) resContainer.classList.add('hidden');
+                };
+            }
+        });
+
+        // --- トーク分析ロジック (LINE Talk Analyzer 統合版) ---
+        function setupAnalysisFeature() {
+            const openBtn = getEl('openAnalysisBtn');
+            const closeBtn = getEl('closeAnalysisBtn');
+            const modal = getEl('analysisModal');
+            const modalContent = getEl('analysisModalContent');
+
+            if (openBtn) {
+                openBtn.onclick = () => {
+                    if (globalMessages.length === 0) {
+                        alert("分析するトークデータがありません。先にファイルを読み込んでください。");
+                        return;
+                    }
+                    toggleDrawer(false); 
+                    runAnalysisAndRender();
+                                                                                                                                                                                                                                                                                                                                                                                                            
+                    modal.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        modal.classList.remove('opacity-0');
+                        modalContent.classList.remove('scale-95');
+                    });
+                };
+            }
+
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    modal.classList.add('opacity-0');
+                    modalContent.classList.add('scale-95');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
+                };
+            }
+        }
+
+        function runAnalysisAndRender() {
+            const dailyStats = {};
+            let currentDateStr = '';
+            let activeSession = null;
+
+            globalMessages.forEach(msg => {
+                if (msg.type === 'date') {
+                    const match = msg.text.match(/(\d{4})[\/\.\-年](\d{1,2})[\/\.\-月](\d{1,2})/);
+                    if (match) {
+                        currentDateStr = `${match[1]}/${match[2].padStart(2, '0')}/${match[3].padStart(2, '0')}`;
+                    }
+                } else if (msg.type === 'msg' && currentDateStr) {
+                    const timeParts = msg.time.split(':');
+                    const hours = parseInt(timeParts[0], 10);
+                    const minutes = parseInt(timeParts[1], 10);
+
+                    let msgDate = new Date(`${currentDateStr} ${hours}:${minutes}:00`);
+
+                    if (activeSession) {
+                        let checkDiff = Math.floor((msgDate.getTime() - activeSession.lastMsgTime.getTime()) / (1000 * 60));
+                        if (checkDiff < 0) {
+                            if (checkDiff < -1000) {
+                                msgDate.setDate(msgDate.getDate() + 1);
+                                currentDateStr = `${msgDate.getFullYear()}/${String(msgDate.getMonth() + 1).padStart(2, '0')}/${String(msgDate.getDate()).padStart(2, '0')}`;
+                            } else {
+                                msgDate = new Date(activeSession.lastMsgTime.getTime());
+                            }
+                        }
+                    }
+
+                    const logicalDate = new Date(msgDate.getTime() - (6 * 60 * 60 * 1000));
+                    const logicalDateString = `${logicalDate.getFullYear()}/${String(logicalDate.getMonth() + 1).padStart(2, '0')}/${String(logicalDate.getDate()).padStart(2, '0')}`;
+
+                    if (!dailyStats[logicalDateString]) {
+                        dailyStats[logicalDateString] = { date: logicalDateString, senderCounts: {}, sessions: 0, totalTime: 0 };
+                        // kazuma、Maiの順番で枠組みを保証
+                        dailyStats[logicalDateString].senderCounts['kazuma'] = 0;
+                        dailyStats[logicalDateString].senderCounts['Mai'] = 0;
+                    }
+
+                    if (dailyStats[logicalDateString].senderCounts[msg.sender] !== undefined) {
+                        dailyStats[logicalDateString].senderCounts[msg.sender]++;
+                    } else {
+                        dailyStats[logicalDateString].senderCounts[msg.sender] = 1; 
+                    }
+
+                    if (!activeSession) {
+                        activeSession = { startTime: msgDate, lastMsgTime: msgDate, logicalDate: logicalDateString, msgCount: 1 };
+                    } else {
+                        const diffMinutes = Math.floor((msgDate.getTime() - activeSession.lastMsgTime.getTime()) / (1000 * 60));
+                        if (diffMinutes >= 10) {
+                            closeSession(dailyStats, activeSession);
+                            activeSession = { startTime: msgDate, lastMsgTime: msgDate, logicalDate: logicalDateString, msgCount: 1 };
+                        } else {
+                            activeSession.lastMsgTime = msgDate;
+                            activeSession.msgCount++;
+                        }
+                    }
+                }
+            });
+
+            if (activeSession) closeSession(dailyStats, activeSession);
+
+            renderAnalysisTable(dailyStats);
+        }
+
+        function closeSession(statsObj, session) {
+            const logDate = session.logicalDate;
+            if(!statsObj[logDate]) return;
+            
+            statsObj[logDate].sessions++;
+            let duration = Math.floor((session.lastMsgTime.getTime() - session.startTime.getTime()) / (1000 * 60));
+            if (session.msgCount === 1 || duration <= 0) duration = 1; 
+            statsObj[logDate].totalTime += duration;
+        }
+
+        function renderAnalysisTable(dailyStats) {
+            const thead = getEl('tableHead');
+            const tbody = getEl('tableBody');
+            const tfoot = getEl('tableFoot');
+            
+            // カラムの表示順序を「kazuma」「Mai」の順に強制固定
+            const activeSenders = ['kazuma', 'Mai'];
+            
+            let headHTML = '<tr><th class="p-3 text-center w-32">論理日付</th>';
+            activeSenders.forEach(s => { headHTML += `<th class="p-3 text-center">${s} 発言数</th>`; });
+            headHTML += '<th class="p-3 text-center">セッション数</th><th class="p-3 text-center">会話時間(分)</th></tr>';
+            thead.innerHTML = headHTML;
+
+            tbody.innerHTML = '';
+            
+            const totals = { sessions: 0, time: 0, senders: {} };
+            activeSenders.forEach(s => totals.senders[s] = 0);
+
+            Object.keys(dailyStats).sort().forEach(date => {
+                const stat = dailyStats[date];
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-100 transition-colors";
+                
+                const dateDash = stat.date.replace(/\//g, '-');
+                
+                let rowHTML = `
+                    <td class="p-3 text-center font-medium">
+                        <a href="#" data-date="${dateDash}" class="analysis-date-link text-blue-600 hover:text-blue-800 hover:underline font-bold">
+                            ${stat.date}
+                        </a>
+                    </td>`;
+                
+                activeSenders.forEach(s => {
+                    const count = stat.senderCounts[s] || 0;
+                    rowHTML += `<td class="p-3 text-center">${count}</td>`;
+                    totals.senders[s] += count;
+                });
+                
+                rowHTML += `
+                    <td class="p-3 text-center text-blue-600 font-bold">${stat.sessions}</td>
+                    <td class="p-3 text-center text-emerald-600 font-bold">${stat.totalTime}</td>
+                `;
+                tr.innerHTML = rowHTML;
+                tbody.appendChild(tr);
+
+                totals.sessions += stat.sessions;
+                totals.time += stat.totalTime;
+            });
+
+            // 生成した日付リンクに対してイベントを設定
+            tbody.querySelectorAll('.analysis-date-link').forEach(link => {
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    const targetDate = link.getAttribute('data-date');
+                    
+                    // 1. レポートモーダルを閉じる
+                    const modal = getEl('analysisModal');
+                    const modalContent = getEl('analysisModalContent');
+                    if (modal) {
+                        modal.classList.add('opacity-0');
+                        if (modalContent) modalContent.classList.add('scale-95');
+                        setTimeout(() => modal.classList.add('hidden'), 300);
+                    }
+                                                                                                                                                                                                                                                                                                            
+                    // 2. 閉じる演出（300ms）のあとに該当トーク位置へジャンプ
+                    setTimeout(() => {
+                        jumpDate(targetDate);
+                    }, 350);
+                };
+            });
+
+            let footHTML = '<tr><td class="p-3 text-center">総計</td>';
+            activeSenders.forEach(s => { footHTML += `<td class="p-3 text-center">${totals.senders[s]}</td>`; });
+            footHTML += `<td class="p-3 text-center text-blue-700">${totals.sessions}</td><td class="p-3 text-center text-emerald-700">${totals.time}</td></tr>`;
+            tfoot.innerHTML = footHTML;
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            if (getEl('dummyAuthBtn')) getEl('dummyAuthBtn').onclick = () => handleAuthAttempt('dummy');
+            if (getEl('realAuthTrigger')) getEl('realAuthTrigger').onclick = () => handleAuthAttempt('real');
+
+            if (window.PublicKeyCredential) {
+                forceLockScreen();
+            } else {
+                getEl('lockMessage').innerText = "Unsupported environment for biometric WebAuthn.";
+                getEl('dummyAuthBtn').classList.add('hidden');
+            }
+
+            const theme = localStorage.getItem('user_theme') || 'blue';
+            const size = localStorage.getItem('user_font_size') || 'md';
+            changeTheme(theme);
+            changeFontSize(size);
+                                                                                
+            setupIndependentMenuEvents();
+                                                                                
+            if (getEl('jumpDatePicker')) {
+                getEl('jumpDatePicker').onchange = (e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    jumpDate(val);
+                    e.target.value = ""; 
+                };
+            }
+
+            if (getEl('meSelector')) {
+                getEl('meSelector').onchange = (e) => {
+                    const sel = e.target.value;
+                    if (!sel) return;
+                    currentMe = sel;
+                    localStorage.setItem('cached_me_user', sel);
+                    updateTitleText();
+                    startRender();
+                };
+            }
+
+            if (getEl('fileInput')) {
+                getEl('fileInput').onchange = async (e) => {
+                    const files = e.target.files; if (!files || files.length === 0) return;
+                    if (getEl('talkTitle')) getEl('talkTitle').innerText = "ファイルを結合中...";
+                    localStorage.removeItem('tracked_folder_id');
+                    localStorage.removeItem('tracked_file_ids');
+                    localStorage.removeItem('tracked_folder_history');
+                    localStorage.removeItem('tracked_image_id');
+                    let texts = [];
+                    for (let f of files) {
+                        const txt = await new Promise((res) => { const r = new FileReader(); r.onload = (evt) => res(evt.target.result); r.readAsText(f, 'UTF-8'); });
+                        texts.push({ text: txt, name: f.name });
+                    }
+                    processMultipleTexts(texts);
+                };
+            }
+
+            const c = getEl('chatContainer');
+            if (c) {
+                c.addEventListener('scroll', () => {
+                    if (isLoadingMore || filteredMessages.length === 0) return;
+                    if (c.scrollTop < 200) {
+                        isLoadingMore = true;
+                        loadMorePast();
+                    }
+                    if (c.scrollHeight - c.scrollTop - c.clientHeight < 200) {
+                        isLoadingMore = true;
+                        loadMoreFuture();
+                    }
+                });
+            }
+
+            openDbAndLoad();
+            
+            // アコーディオン初期イベント設定
+            setupAccordionFeatures();
+
+            const trackedHistory = localStorage.getItem('tracked_folder_history');
+            if (trackedHistory) {
+                folderHistory = JSON.parse(trackedHistory);
+                renderExplorer(folderHistory[folderHistory.length - 1].id);
+            } else {
+                renderExplorer('root'); 
+            }
+
+            setupAnalysisFeature();
+
+            // 追加: フォトアルバム機能の初期化呼び出し
+            initPhotoAlbumFeature();
+        });
+
+        // ---  DATA Fetching ---
+        async function renderExplorer(folderId) {
+            currentFolderId = folderId; 
+            const el = getEl('explorerList');
+            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">📂 読み込み中...</p>'; 
+            updateBreadcrumb(); 
+            localStorage.setItem('explorer_folder_history', JSON.stringify(folderHistory));
+            try {
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || []; 
+                if (el) el.innerHTML = ''; 
+                currentFolderFiles = [];
+                currentFolderImageFile = null; 
+
+                if (currentFolderId === localStorage.getItem('tracked_folder_id')) {
+                    const pinInfo = document.createElement('div');
+                    pinInfo.className = 'text-[10px] text-emerald-600 font-bold bg-emerald-50 p-1.5 rounded mb-2 text-center border border-emerald-200 flex-shrink-0';
+                    pinInfo.innerText = '📌 起動時の固定フォルダとして設定されています';
+                    if(el) el.appendChild(pinInfo);
+                }
+
+                if ((!files || files.length === 0) && el) { 
+                    el.innerHTML += '<p class="text-gray-400 text-center py-4">📁 空っぽのフォルダです</p>'; 
+                    return; 
+                }
+                let textCount = 0;
+                                                                                
+                // 自動割り当てルールに適合する画像ファイル（mai.png）を事前検索
+                const maiImgFile = files.find(f => f.name.toLowerCase() === 'mai.png');
+                if (maiImgFile) {
+                    currentFolderImageFile = maiImgFile;
+                }
+
+                files.forEach(file => {
+                    const isFolder = (file.mimeType === 'application/vnd.google-apps.folder'); 
+                    const isImage = (file.mimeType === 'image/jpeg' || file.mimeType === 'image/png');
+                    const item = document.createElement('div');
+                    item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
+                                                                                                                                                                                
+                    if (isFolder) { 
+                        item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`; 
+                        item.onclick = () => { folderHistory.push({ id: file.id, name: file.name }); renderExplorer(file.id); }; 
+                    } else if (isImage) {
+                        // 特定画像（mai.png等）の割り当て表示
+                        if (file.name.toLowerCase() === 'mai.png') {
+                            item.innerHTML = `<span class="text-emerald-600 truncate flex-1">🖼️ ${file.name} (Mai専用アイコン自動検出)</span>`;
+                            item.onclick = async () => {
+                                try {
+                                    const imgRes = await fetchFromGas("getFile", { fileId: file.id });
+                                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                                    hasDriveCustomImage = true;
+                                    saveCache(globalMessages); 
+                                    startRender();
+                                    alert("mai.png をキャラクター画像に反映しました。");
+                                } catch(err) { console.error(err); }
+                            };
+                        } else {
+                            item.innerHTML = `<span class="text-gray-400 truncate flex-1">🖼️ ${file.name}</span>`;
+                        }
+                    } else { 
+                        item.innerHTML = `<span class="text-gray-600 truncate flex-1">📄 ${file.name}</span>`; 
+                        currentFolderFiles.push(file); 
+                        textCount++; 
+                        item.onclick = () => processSingleDrive(file.id, file.name); 
+                    }
+                    if (el) el.appendChild(item);
+                });
+
+                // 【完全自動同期化】フォルダ内にPlain Text形式のトーク履歴ファイルがあれば即座に一括同期
+                if (textCount > 0) {
+                    triggerFolderAutoSync();
+                }
+            } catch (err) { 
+                console.error("ドライブ探索エラー:", err);
+                if (el) el.innerHTML = '<p class="text-red-500 text-center py-4">⚠️ 通信または認証エラーが発生しました</p>';
+            }
+        }
+                    
+        function toggleHeaderBox(forceState) {
+            const box = getEl('headerSearchBox'); if (!box) return;
+            const isHidden = box.classList.contains('hidden'); const toShow = (forceState !== undefined) ? forceState : isHidden;
+            if (toShow) {
+                // 検索窓を開く時は、ドロワーメニュー（ハンバーガーメニュー）側を排他クローズする
+                toggleDrawer(false);
+
+                box.classList.remove('hidden'); const input = getEl('searchKeyword');
+                if (input) { input.value = ''; input.focus(); }
+                getEl('searchClearQueryBtn').classList.add('hidden');
+                getEl('searchResults').innerHTML = '';
+                getEl('searchResultsContainer').classList.add('hidden');
+            } else { box.classList.add('hidden'); }
+        }
+
+        function updateTitleText() { 
+            if (globalSenders.length === 0) return; 
+            const partners = globalSenders.filter(s => s !== currentMe); 
+            actualPartnerNames = partners.length > 0 ? partners.join(', ') : currentMe; 
+            applyTitle(); 
+        }
+
+        function applyTitle() { 
+            const t = getEl('talkTitle'); 
+            if (t) {
+                if (globalMessages.length === 0) {
+                    t.innerText = "Line Talk Viewer";
+                } else {
+                    t.innerText = isCamouflageMode ? "Line Talk Viewer" : actualPartnerNames;
+                }
+            }
+        }
+
+        changeTheme = function(themeName) {
+            currentThemeName = themeName; 
+            const savedSize = localStorage.getItem('user_font_size') || 'md';
+                                                                                
+            let sizeClass = 'text-sm';
+            if (savedSize === 'sm') sizeClass = 'text-xs';
+            if (savedSize === 'md') sizeClass = 'text-sm';
+            if (savedSize === 'lg') sizeClass = 'text-base';
+                                                                                
+            const c = getEl('chatContainer');
+            if (c) {
+                c.className = `flex-1 overflow-y-auto p-4 flex flex-col space-y-4 select-text bg-theme-${themeName} ${sizeClass} h-full w-full relative`;
+            }
+            localStorage.setItem('user_theme', themeName);
+                                                                                
+            const header = getEl('mainHeader');
+            if (header) {
+                header.className = `h-14 flex items-center justify-between px-3 z-50 shadow-sm w-full fixed top-0 left-0 transition-colors duration-200 header-${themeName}`;
+            }
+
+            const sub = getEl('talkSub');
+            if (sub) {
+                sub.className = `text-[10px] sub-${themeName}`;
+            }
+
+            const buttons = [getEl('theme-blue'), getEl('theme-dark'), getEl('theme-pink'), getEl('theme-beige')];
+            buttons.forEach(b => { if(b) b.classList.remove('ring-4', 'ring-yellow-400'); });
+            const targetBtn = getEl(`theme-${themeName}`); if(targetBtn) targetBtn.classList.add('ring-4', 'ring-yellow-400');
+                                                                                
+            if (globalMessages.length > 0 && !getEl('initialWelcomeBox')) {
+                startRender();
+            }
+        }
+
+        changeFontSize = function(sizeName) {
+            const c = getEl('chatContainer');
+            if (c) {
+                c.classList.remove('text-xs', 'text-sm', 'text-base');
+                if (sizeName === 'sm') c.classList.add('text-xs');
+                if (sizeName === 'md') c.classList.add('text-sm');
+                if (sizeName === 'lg') c.classList.add('text-base');
+            }
+            localStorage.setItem('user_font_size', sizeName);
+                                                                                
+            const sizeButtons = [getEl('size-sm'), getEl('size-md'), getEl('size-lg')];
+            sizeButtons.forEach(b => { 
+                if(b) b.className = "bg-white border border-gray-300 text-gray-700 text-xs py-1 rounded cursor-pointer"; 
+            });
+                                                                                
+            const active = getEl(`size-${sizeName}`); 
+            if(active) {
+                active.className = "bg-blue-600 border border-blue-600 text-white text-xs py-1 rounded font-bold cursor-pointer";
+            }
+        }
+
+        updateBreadcrumb = function() {
+            const bc = getEl('breadcrumb');
+            if (!bc) return; bc.innerHTML = '';
+            folderHistory.forEach((f, idx) => {
+                if (idx > 0) { const arrow = document.createElement('span'); arrow.className = 'mx-1 text-gray-300'; arrow.innerText = '>'; bc.appendChild(arrow); }
+                const node = document.createElement('span'); const isLast = (idx === folderHistory.length - 1);
+                node.className = isLast ? 'font-bold text-gray-800' : 'text-blue-600 hover:underline cursor-pointer'; node.innerText = f.name;
+                if (!isLast) { node.onclick = () => { folderHistory = folderHistory.slice(0, idx + 1); renderExplorer(f.id); }; } bc.appendChild(node);
+            });
+        }
+
+        // --- 初回一括読み込み＆監視フォルダ登録処理 ---
+        async function triggerFolderAutoSync() {
+            if (currentFolderFiles.length === 0) return; 
+            const title = getEl('talkTitle');
+            if (title) title.innerText = "自動同期中...";
+
+            if (currentFolderImageFile) {
+                try {
+                    const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                    partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                    hasDriveCustomImage = true;
+                    localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                } catch(e) { console.error("Auto load initial partner avatar fetch failed", e); }
+            } else {
+                localStorage.removeItem('tracked_image_id');
+                hasDriveCustomImage = false;
+                partnerCustomAvatarUrl = "";
+            }
+
+            let texts = [];
+            let fileIds = [];
+            for (let f of currentFolderFiles) { 
+                try { 
+                    const res = await fetchFromGas("getFile", { fileId: f.id }); 
+                    texts.push({ text: res.content, name: f.name }); 
+                    fileIds.push(f.id);
+                } catch (err) { console.error(err); } 
+            }
+            
+            localStorage.setItem('tracked_folder_id', currentFolderId);
+            localStorage.setItem('tracked_file_ids', JSON.stringify(fileIds));
+            localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
+            processMultipleTexts(texts);
+
+            setAccordionState('drive', false);
+        }
+
+        async function processSingleDrive(fileId, filename) { 
+            try { 
+                const title = getEl('talkTitle');
+                if (title) title.innerText = "ファイル取得中...";
+
+                if (currentFolderImageFile) {
+                    try {
+                        const imgRes = await fetchFromGas("getFile", { fileId: currentFolderImageFile.id });
+                        partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                        hasDriveCustomImage = true;
+                        localStorage.setItem('tracked_image_id', currentFolderImageFile.id);
+                    } catch(e) { console.error("Single load image fetch failed", e); }
+                } else {
+                    localStorage.removeItem('tracked_image_id');
+                    hasDriveCustomImage = false;
+                    partnerCustomAvatarUrl = "";
+                }
+
+                const res = await fetchFromGas("getFile", { fileId: fileId }); 
+                
+                localStorage.setItem('tracked_folder_id', currentFolderId);
+                localStorage.setItem('tracked_file_ids', JSON.stringify([fileId]));
+                localStorage.setItem('tracked_folder_history', JSON.stringify(folderHistory));
+                processMultipleTexts([{ text: res.content, name: filename }]); 
+
+                setAccordionState('drive', false);
+            } catch (err) { console.error(err); } 
+        }
+
+        async function autoCheckNewFiles() {
+            const folderId = localStorage.getItem('tracked_folder_id');
+            const processedStr = localStorage.getItem('tracked_file_ids');
+                                                                                                                                                                                
+            if (!folderId || !processedStr || !isCurrentlyAuthenticated) return;
+                                                                                                                                                                                
+            let processedIds = [];
+            try { processedIds = JSON.parse(processedStr); } catch(e) { return; }
+
+            const titleElement = getEl('talkTitle');
+            const originalTitle = titleElement ? titleElement.innerText : "";
+            if (titleElement) titleElement.innerText = "同期データをチェック中...";
+
+            try {
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || [];
+                
+                const imageFiles = files.filter(f => f.mimeType.startsWith('image/') && f.name.toLowerCase() === 'mai.png');
+                const textFiles = files.filter(f => f.mimeType === 'text/plain');
+
+                let cacheNeedsUpdate = false;
+                let requiresRender = false;
+
+                if (imageFiles.length > 0) {
+                    const imgFile = imageFiles[0]; 
+                    const currentImageId = localStorage.getItem('tracked_image_id');
+                                        
+                    if (imgFile.id !== currentImageId || !hasDriveCustomImage) {
+                        try {
+                            const imgRes = await fetchFromGas("getFile", { fileId: imgFile.id });
+                            partnerCustomAvatarUrl = `data:${imgRes.mimeType};base64,${imgRes.content}`;
+                            hasDriveCustomImage = true;
+                            localStorage.setItem('tracked_image_id', imgFile.id);
+                                                                                                                                                                                                                                                                                                                                        
+                            cacheNeedsUpdate = true;
+                            requiresRender = true;
+                        } catch(e) { console.error("画像自動同期エラー", e); }
+                    }
+                }
+
+                const newTextFiles = textFiles.filter(f => !processedIds.includes(f.id));
+
+                if (newTextFiles.length > 0) {
+                    if (titleElement) titleElement.innerText = `新着トークを追加中 (${newTextFiles.length}件)...`;
+                    let newTexts = [];
+                                                                                                                                                                                                                                                                                                                                        
+                    for (let nf of newTextFiles) {
+                        try {
+                            const fileRes = await fetchFromGas("getFile", { fileId: nf.id });
+                            newTexts.push({ text: fileRes.content, name: nf.name });
+                            processedIds.push(nf.id);
+                        } catch(e) { console.error("新着ファイルのフェッチ失敗:", e); }
+                    }
+
+                    if (newTexts.length > 0) {
+                        localStorage.setItem('tracked_file_ids', JSON.stringify(processedIds));
+                                                                                                                                                                                                                                                                                                                                        
+                        let currentFlat = [];
+                        let currentDateStr = "";
+                        globalMessages.forEach(m => {
+                            if (m.type === 'date') currentDateStr = m.text;
+                            else if (m.type === 'msg' && currentDateStr) {
+                                currentFlat.push({ dateStr: currentDateStr, time: m.time, sender: m.sender, body: m.body });
+                            }
+                        });
+
+                        newTexts.forEach(obj => {
+                            const { messages } = parseText(obj.text, obj.name);
+                            let targetDate = "";
+                            messages.forEach(m => {
+                                if (m.type === 'date') targetDate = m.text;
+                                else if (m.type === 'msg' && targetDate) {
+                                    currentFlat.push({ dateStr: targetDate, time: m.time, sender: m.sender, body: m.body });
+                                }
+                            });
+                        });
+
+                        currentFlat.sort((a, b) => parseTimestamp(a.dateStr, a.time) - parseTimestamp(b.dateStr, b.time));
+
+                        let timeline = [];
+                        let uniqueKeys = new Set();
+                        let lastDateStr = "";
+                        let counts = {};
+
+                        currentFlat.forEach(m => {
+                            const key = `${m.dateStr}_${m.time}_${m.sender}_${m.body}`;
+                            if (!uniqueKeys.has(key)) {
+                                uniqueKeys.add(key);
+                                if (m.dateStr !== lastDateStr) {
+                                    timeline.push({ type: 'date', text: m.dateStr });
+                                    lastDateStr = m.dateStr;
+                                }
+                                timeline.push({ type: 'msg', time: m.time, sender: m.sender, body: m.body });
+                                counts[m.sender] = (counts[m.sender] || 0) + 1;
+                            }
+                        });
+
+                        globalMessages = timeline;
+                        filteredMessages = [...globalMessages];
+                        globalSenders = Object.keys(counts);
+
+                        const sub = getEl('talkSub');
+                        if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
+                                                
+                        updateTitleText();
+                        cacheNeedsUpdate = true;
+                        requiresRender = true;
+                    }
+                }
+
+                if (cacheNeedsUpdate) saveCache(globalMessages);
+                if (requiresRender) startRender();
+
+                if (titleElement) titleElement.innerText = originalTitle;
+                        
+            } catch (err) {
+                console.error("自動バックグラウンドチェックエラー:", err);
+                if (titleElement) titleElement.innerText = originalTitle;
+            }
+        }
+
+        function processMultipleTexts(fileObjects) {
+            let allRaw = []; let counts = {}; 
+            fileObjects.forEach(obj => { const { messages } = parseText(obj.text, obj.name); allRaw = allRaw.concat(messages); });
+            let timeline = []; let currentDateStr = ""; let uniqueKeys = new Set(); let flat = [];
+            allRaw.forEach(m => { 
+                if (m.type === 'date') { currentDateStr = m.text; } 
+                else if (m.type === 'msg' && currentDateStr) { flat.push({ dateStr: currentDateStr, time: m.time, sender: m.sender, body: m.body }); } 
+            });
+            flat.sort((a, b) => parseTimestamp(a.dateStr, a.time) - parseTimestamp(b.dateStr, b.time));
+            let lastDateStr = "";
+            flat.forEach(m => {
+                const key = `${m.dateStr}_${m.time}_${m.sender}_${m.body}`;
+                if (!uniqueKeys.has(key)) { 
+                    uniqueKeys.add(key); 
+                    if (m.dateStr !== lastDateStr) { timeline.push({ type: 'date', text: m.dateStr }); lastDateStr = m.dateStr; } 
+                    timeline.push({ type: 'msg', time: m.time, sender: m.sender, body: m.body }); 
+                    counts[m.sender] = (counts[m.sender] || 0) + 1; 
+                }
+            });
+            globalMessages = timeline; filteredMessages = [...globalMessages]; globalSenders = Object.keys(counts);
+             
+            let assumedMe = "", max = 0; 
+            const sel = getEl('meSelector');
+            if (sel) sel.innerHTML = '';
+            for (const [sender, count] of Object.entries(counts)) {
+                const opt = document.createElement('option'); opt.value = sender; opt.innerText = `${sender} (${count}回)`; 
+                if (sel) sel.appendChild(opt); 
+                if (count > max) { max = count; assumedMe = sender; }
+            }
+            const savedMe = localStorage.getItem('cached_me_user'); 
+            if (savedMe && counts[savedMe]) { currentMe = savedMe; } else if (assumedMe) { currentMe = assumedMe; }
+            if(currentMe && sel) { sel.value = currentMe; sel.disabled = false; localStorage.setItem('cached_me_user', currentMe); }
+             
+            const sub = getEl('talkSub');
+            if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
+             
+            isCamouflageMode = false;
+            updateTitleText(); 
+            saveCache(globalMessages); 
+            startRender(); 
+            toggleDrawer(false);
+        }
+
+        function startRender() {
+            const c = getEl('chatContainer');
+            if (c) c.innerHTML = ''; 
+            if (getEl('calendarWrapper')) getEl('calendarWrapper').classList.remove('hidden'); 
+            if (getEl('searchToggleBtn')) getEl('searchToggleBtn').classList.remove('hidden');
+             
+            if (filteredMessages.length === 0) { 
+                if (c) c.innerHTML = `<div id="initialWelcomeBox" class="text-center text-white text-sm my-auto bg-black/20 rounded-2xl px-6 py-4 max-w-xs self-center shadow-inner"><p class="font-bold mb-1">Google Drive & LINE Viewer v84</p><p class="text-xs text-white/80">同期済みのデータがありません。右上のメニューからトークファイルを結合してください。</p></div>`; 
+                return; 
+            }
+             
+            currentLoadedIndex = Math.max(0, filteredMessages.length - PAGE_SIZE); 
+            currentEndLoadedIndex = filteredMessages.length; 
+             
+            visibleMessages = filteredMessages.slice(currentLoadedIndex, currentEndLoadedIndex); 
+            renderSegment(visibleMessages, 'append', currentLoadedIndex);
+             
+            if (c) c.scrollTop = c.scrollHeight; 
+        }
+
+        function loadMorePast() {
+            if (currentLoadedIndex <= 0) { isLoadingMore = false; return; }
+            const next = Math.max(0, currentLoadedIndex - PAGE_SIZE); 
+            const seg = filteredMessages.slice(next, currentLoadedIndex);
+             
+            const c = getEl('chatContainer');
+            const oldH = c ? c.scrollHeight : 0; 
+            const oldT = c ? c.scrollTop : 0; 
+             
+            currentLoadedIndex = next; 
+            renderSegment(seg, 'prepend', currentLoadedIndex);
+             
+            const newH = c ? c.scrollHeight : 0; 
+            if (c) c.scrollTop = oldT + (newH - oldH);
+            isLoadingMore = false;
+        }
+
+        function loadMoreFuture() {
+            if (currentEndLoadedIndex >= filteredMessages.length) { isLoadingMore = false; return; }
+            const nextEnd = Math.min(filteredMessages.length, currentEndLoadedIndex + PAGE_SIZE);
+            const seg = filteredMessages.slice(currentEndLoadedIndex, nextEnd);
+            const start = currentEndLoadedIndex;
+            currentEndLoadedIndex = nextEnd;
+            renderSegment(seg, 'append', start);
+            isLoadingMore = false;
+        }
+
+        function jumpDate(dateDash) {
+            const parts = dateDash.split('-'); if (parts.length < 3) return;
+            const y = parts[0]; const mR = parts[1]; const dR = parts[2];
+            const mS = parseInt(mR, 10).toString(); const dS = parseInt(dR, 10).toString();
+             
+            const pShort = `${y}/${mS}/${dS}`; 
+            const pLong = `${y}/${mR}/${dR}`;
+            
+            let found = -1;
+            for (let i = 0; i < filteredMessages.length; i++) { 
+                if (filteredMessages[i].type === 'date') { 
+                    const txt = filteredMessages[i].text; 
+                    if (txt.includes(pShort) || txt.includes(pLong)) { found = i; break; } 
+                } 
+            }
+             
+            if (found === -1) {
+                const target = new Date(parseInt(y, 10), parseInt(mR, 10) - 1, parseInt(dR, 10)).getTime();
+                let min = Infinity;
+                let nearest = -1;
+                 
+                for (let i = 0; i < filteredMessages.length; i++) {
+                    if (filteredMessages[i].type === 'date') {
+                        const t = parseTimestamp(filteredMessages[i].text, "00:00");
+                        const diff = Math.abs(target - t);
+                        if (diff < min) { min = diff; nearest = i; }
+                    }
+                }
+                 
+                if (nearest !== -1) {
+                    found = nearest;
+                    const dText = filteredMessages[nearest].text.match(/\d+[\/\.\-年]\d+[\/\.\-月]\d+/)[0];
+                    alert(`${y}/${mS}/${dS} のトークがないため、一番近い ${dText} を表示します。`);
+                } else {
+                    alert(`トーク履歴自体が空のため、ジャンプできません。`);
+                    return;
+                }
+            }
+             
+            currentLoadedIndex = Math.max(0, found - 50); 
+            currentEndLoadedIndex = Math.min(filteredMessages.length, currentLoadedIndex + PAGE_SIZE); 
+            visibleMessages = filteredMessages.slice(currentLoadedIndex, currentEndLoadedIndex);
+             
+            const c = getEl('chatContainer');
+            if (c) c.innerHTML = ''; 
+             
+            renderSegment(visibleMessages, 'append', currentLoadedIndex);
+             
+            setTimeout(() => {
+                if (!c) return; 
+                const stamps = c.querySelectorAll('.date-stamp-node');
+                const tText = filteredMessages[found].text;
+                 
+                for (let el of stamps) { 
+                    if (el.innerText.trim() === tText.trim()) { 
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
+                        el.classList.add('ring-4', 'ring-yellow-400'); 
+                        setTimeout(() => el.classList.remove('ring-4', 'ring-yellow-400'), 2000); 
+                        break; 
+                    } 
+                }
+            }, 150);
+        }
+
+        function triggerSearch() {
+            const kw = getEl('searchKeyword').value.trim();
+            const kwLower = kw.toLowerCase();
+            const res = getEl('searchResults');
+            const resContainer = getEl('searchResultsContainer');
+            const countLabel = getEl('searchCountLabel');
+             
+            if (res) res.innerHTML = ''; 
+            if (!kw) { 
+                if (resContainer) resContainer.classList.add('hidden'); 
+                return; 
+            }
+             
+            let matchedItems = [];
+            let currentDateText = "";
+             
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+             
+            globalMessages.forEach((m, idx) => {
+                if (m.type === 'date') {
+                    currentDateText = m.text; 
+                } else if (m.type === 'msg' && m.body.toLowerCase().includes(kwLower)) {
+                    let displayDate = "";
+                    if (currentDateText) {
+                        const dMatch = currentDateText.match(/(\d{4})[\/\.\-年](\d{1,2})[\/\.\-月](\d{1,2})/);
+                        if (dMatch) {
+                            const msgDateStr = `${dMatch[1]}/${dMatch[2].padStart(2, '0')}/${dMatch[3].padStart(2, '0')}`;
+                            if (msgDateStr === todayStr) {
+                                displayDate = m.time;
+                            } else {
+                                displayDate = `${dMatch[1].slice(-2)}/${dMatch[2].padStart(2, '0')}/${dMatch[3].padStart(2, '0')}`;
+                            }
+                        } else {
+                            displayDate = m.time;
+                        }
+                    } else {
+                        displayDate = m.time;
+                    }
+
+                    matchedItems.push({
+                        index: idx,
+                        sender: m.sender,
+                        time: m.time,
+                        body: m.body,
+                        dateStr: displayDate,
+                        rawDate: currentDateText
+                    });
+                }
+            });
+             
+            matchedItems.reverse();
+             
+            if (resContainer) resContainer.classList.remove('hidden');
+             
+            if (matchedItems.length === 0) {
+                if (countLabel) countLabel.innerText = "メッセージ 0";
+                if (res) res.innerHTML = '<div class="p-6 text-center text-zinc-500 text-xs bg-[#1a1a1a]">メッセージが見つかりませんでした</div>';
+                return;
+            }
+             
+            if (countLabel) countLabel.innerText = `メッセージ ${matchedItems.length}`;
+             
+            const defAvatar = getThemeDefaultAvatar();
+             
+            matchedItems.forEach(m => {
+                const item = document.createElement('div'); 
+                item.className = 'p-3 flex items-start space-x-3 hover:bg-zinc-900 cursor-pointer border-b border-zinc-900 select-none';
+                 
+                const escapedKw = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                const highlightBody = m.body.replace(new RegExp(escapedKw, 'gi'), (match) => {
+                    return `<span class="text-[#4ade80] font-medium">${match}</span>`;
+                });
+                 
+                const currentMsgAvatar = getAvatarUrlForSender(m.sender);
+                 
+                item.innerHTML = `
+                    <img src="${currentMsgAvatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" onerror="this.src='${defAvatar}'">
+                    <div class="flex-1 min-w-0 flex flex-col">
+                        <div class="flex justify-between items-baseline">
+                            <span class="font-bold text-xs text-zinc-300 truncate max-w-[75%]">${m.sender}</span>
+                            <span class="text-[10px] text-zinc-500 tracking-wide font-medium flex-shrink-0">${m.dateStr}</span>
+                        </div>
+                        <div class="text-zinc-400 text-xs truncate mt-1 leading-normal">${highlightBody.replace(/<br>/g, ' ')}</div>
+                    </div>
+                `;
+                 
+                item.onclick = () => {
+                    currentLoadedIndex = Math.max(0, m.index - 50); 
+                    currentEndLoadedIndex = Math.min(filteredMessages.length, currentLoadedIndex + PAGE_SIZE); 
+                    visibleMessages = filteredMessages.slice(currentLoadedIndex, currentEndLoadedIndex);
+                     
+                    const c = getEl('chatContainer');
+                    if (c) c.innerHTML = ''; 
+                    renderSegment(visibleMessages, 'append', currentLoadedIndex);
+                     
+                    const container = getEl('searchResultsContainer');
+                    if (container) container.classList.add('hidden');
+                     
+                    setTimeout(() => { 
+                        const tar = getEl(`msg-${m.index}`); 
+                        if (tar) { 
+                            tar.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                            tar.classList.add('ring-4', 'ring-yellow-400'); 
+                            setTimeout(() => tar.classList.remove('ring-4', 'ring-yellow-400'), 2000); 
+                        } 
+                    }, 100);
+                };
+                if (res) res.appendChild(item);
+            });
+        }
+
+        function renderSegment(msgs, mode = 'append', base = 0) {
+            const frag = document.createDocumentFragment();
+            const defAvatar = getThemeDefaultAvatar();
+
+            msgs.forEach((msg, idx) => {
+                const gIdx = base + idx;
+                 
+                if (msg.type === 'date') { 
+                    const w = document.createElement('div');
+                    w.className = 'w-full flex items-center justify-center my-4 select-none z-10 px-4 flex-shrink-0';
+                    w.innerHTML = `
+                        <div class="flex-1 border-t border-white/20"></div>
+                        <div class="date-stamp-node text-center text-white text-[11px] font-bold bg-black/30 rounded-full px-4 py-1 mx-3 shadow-sm border border-white/10">
+                            ${msg.text}
+                        </div>
+                        <div class="flex-1 border-t border-white/20"></div>
+                    `;
+                    frag.appendChild(w); 
+                } 
+                else if (msg.type === 'msg') {
+                    const isMe = (msg.sender === currentMe); 
+                    const w = document.createElement('div'); 
+                    w.id = `msg-${gIdx}`;
+                    if (isMe) { 
+                        w.className = 'flex items-end justify-end space-x-1.5 space-x-reverse max-w-[85%] self-end p-0.5 flex-shrink-0 mb-1'; 
+                        w.innerHTML = `
+                            <div class="flex flex-col items-end justify-end pb-0.5 space-y-1">
+                                <span class="text-[10px] time-text select-none leading-none">既読</span>
+                                <span class="text-[10px] time-text select-none pb-0.5 whitespace-nowrap">${msg.time}</span>
+                            </div>
+                            <div class="bubble-me relative break-all whitespace-pre-wrap select-text">${msg.body}</div>
+                        `; 
+                    } 
+                    else { 
+                        w.className = 'flex items-start space-x-2 max-w-[85%] self-start p-0.5 flex-shrink-0 mb-1'; 
+                        const partnerAvatar = getAvatarUrlForSender(msg.sender);
+                         
+                        w.innerHTML = `
+                            <img src="${partnerAvatar}" class="w-9 h-9 rounded-full object-cover flex-shrink-0 select-none mt-0.5" alt="avatar" onerror="this.src='${defAvatar}'">
+                            <div class="flex flex-col">
+                                <span class="text-[11px] name-text mb-0.5 ml-1 select-none font-medium">${msg.sender}</span>
+                                <div class="flex items-end space-x-1.5">
+                                    <div class="bubble-other relative break-all whitespace-pre-wrap select-text">${msg.body}</div>
+                                    <span class="text-[10px] time-text select-none pb-0.5 whitespace-nowrap">${msg.time}</span>
+                                </div>
+                            </div>`; 
+                    }
+                    frag.appendChild(w);
+                }
+            });
+            
+            const c = getEl('chatContainer');
+            if (c) { 
+                if (mode === 'prepend') { 
+                    c.insertBefore(frag, c.firstChild); 
+                } else { 
+                    c.appendChild(frag); 
+                } 
+            }
+        }
+
+        function saveCache(data) { 
+            indexedDB.open("LineViewerCacheDB", 1).onsuccess = function(e) { 
+                e.target.result.transaction("timeline", "readwrite")
+                    .objectStore("timeline")
+                    .put({ 
+                        id: "last_timeline", 
+                        data: data,
+                        avatar: partnerCustomAvatarUrl,
+                        hasCustom: hasDriveCustomImage
+                    }); 
+            }; 
+        }
+
+        function openDbAndLoad() {
+            const req = indexedDB.open("LineViewerCacheDB", 1);
+            req.onupgradeneeded = function(e) { 
+                const db = e.target.result; 
+                if (!db.objectStoreNames.contains("timeline")) {
+                    db.createObjectStore("timeline", { keyPath: "id" }); 
+                }
+            };
+            req.onsuccess = function(e) {
+                const db = e.target.result; 
+                const getReq = db.transaction("timeline", "readonly").objectStore("timeline").get("last_timeline");
+                getReq.onsuccess = function() {
+                    const res = getReq.result;
+                    if (res && res.data && res.data.length > 0) {
+                        globalMessages = res.data; 
+                        filteredMessages = [...globalMessages]; 
+                         
+                        partnerCustomAvatarUrl = res.avatar || "";
+                        hasDriveCustomImage = res.hasCustom || false;
+
+                        let counts = {}; 
+                        globalMessages.forEach(m => { if(m.type === 'msg') counts[m.sender] = (counts[m.sender] || 0) + 1; }); 
+                        globalSenders = Object.keys(counts);
+                        
+                        const sel = getEl('meSelector');
+                        if (sel) sel.innerHTML = '';
+                        for (const [s, cnt] of Object.entries(counts)) { 
+                            const opt = document.createElement('option'); opt.value = s; opt.innerText = `${s} (${cnt}回)`; 
+                            if (sel) sel.appendChild(opt); 
+                        }
+                        const saved = localStorage.getItem('cached_me_user'); 
+                        if (saved && counts[saved]) { currentMe = saved; if(sel) { sel.value = saved; sel.disabled = false; } }
+                         
+                        const sub = getEl('talkSub');
+                        if (sub) sub.innerText = `${globalMessages.filter(m => m.type === 'msg').length} 件`;
+                         
+                        isCamouflageMode = false; 
+                        updateTitleText(); 
+                        startRender();
+                    }
+                };
+            };
+        }
+
+        function clearCache() { 
+            indexedDB.open("LineViewerCacheDB", 1).onsuccess = function(e) { 
+                e.target.result.transaction("timeline", "readwrite").objectStore("timeline").delete("last_timeline"); 
+            }; 
+        }
+
+        function parseTimestamp(dStr, tStr) { const dM = dStr.match(/\d+/g); const tM = tStr.match(/\d+/g); if (!dM || dM.length < 3) return 0; const h = tM ? parseInt(tM[0], 10) : 0; const m = tM ? parseInt(tM[1], 10) : 0; return new Date(parseInt(dM[0], 10), parseInt(dM[1], 10) - 1, parseInt(dM[2], 10), h, m, 0).getTime(); }
+
+        function parseText(text, filename) {
+            const lines = text.split(/\r?\n/); const messages = []; const counts = {}; let partner = "";
+            const match = filename.match(/\[LINE\]\s*(.+?)とのトーク/); if (match) partner = match[1];
+             
+            // 【変更】感覚的に正しいとされる、行頭と行末を厳格に指定した日付スタンプ用の正規表現
+            const dateRegex = /^(\d{4}[\/\-年]\d{1,2}[\/\-月]\d{1,2}(日)?(\([日月火水木金土]\)|[日月火水木金土]曜日)?)$/; 
+            // 【追加】会話の誤認識を物理的に防ぐための「時刻から始まるメッセージ行」判定用の正規表現
+            const msgRowRegex = /^(\d{1,2}:\d{2})[\t\s]/;
+
+            const reg1 = /^(\d{1,2}:\d{2})[\t]([^\t\n]+)[\t](.*)$/; 
+            const reg2 = /^(\d{1,2}:\d{2})\s+([^\s]+)\s+(.*)$/;
+            let ref = null;
+             
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i]; const trim = line.trim(); 
+                if (trim === "") { if (ref) ref.body += '<br>'; continue; }
+                
+                // 優先条件①：時刻から始まっている行なら絶対に会話メッセージとして処理（日付誤認の防止）
+                if (msgRowRegex.test(trim)) {
+                    let m = line.match(reg1) || line.match(reg2);
+                    if (m) {
+                        const [_, time, sender, body] = m; const cleanS = sender.trim(); counts[cleanS] = (counts[cleanS] || 0) + 1;
+                        let cleanB = body.replace(/\\n/g, '<br>'); 
+                        if (cleanB === '[スタンプ]' || cleanB === '[Sticker]') { cleanB = '🎨 [スタンプ]'; } 
+                        else if (cleanB === '[写真]' || cleanB === '[Photo]') { cleanB = '📸 [写真]'; } 
+                        else if (cleanB === '[動画]' || cleanB === '[Video]') { cleanB = '🎬 [動画]'; }
+                        const newMsg = { type: 'msg', time: time.trim(), sender: cleanS, body: cleanB }; 
+                        messages.push(newMsg); 
+                        ref = newMsg;
+                    } else if (ref) {
+                        ref.body += '<br>' + line;
+                    }
+                } 
+                // 優先条件②：メッセージの形をしておらず、厳格な日付スタンプ行に完全一致する場合のみ日付として処理
+                else if (dateRegex.test(trim)) { 
+                    messages.push({ type: 'date', text: trim }); 
+                    ref = null; 
+                } 
+                // それ以外の行（改行された複数行メッセージの続きなど）
+                else if (ref) { 
+                    ref.body += '<br>' + line; 
+                } else if (messages.length > 0 && messages[messages.length - 1].type === 'msg') { 
+                    messages[messages.length - 1].body += '<br>' + line; 
+                }
+            }
+            return { messages, counts, partner };
+        }
+
+        function setupAccordionFeatures() {
+            const driveHeader = getEl('driveAccordionHeader');
+            const albumHeader = getEl('albumAccordionHeader');
+
+            if (driveHeader) {
+                driveHeader.onclick = () => {
+                    const content = getEl('driveAccordionContent');
+                    const isHidden = content.classList.contains('hidden');
+                    setAccordionState('drive', isHidden);
+                };
+            }
+
+            if (albumHeader) {
+                albumHeader.onclick = () => {
+                    const content = getEl('albumAccordionContent');
+                    const isHidden = content.classList.contains('hidden');
+                    setAccordionState('album', isHidden);
+                };
+            }
+
+            setAccordionState('drive', false);
+            setAccordionState('album', false);
+        }
+
+        function setAccordionState(prefix, isOpen) {
+            const content = getEl(`${prefix}AccordionContent`);
+            const icon = getEl(`${prefix}AccordionIcon`);
+            if (!content || !icon) return;
+
+            if (isOpen) {
+                content.classList.remove('hidden');
+                icon.innerText = '▼';
+            } else {
+                content.classList.add('hidden');
+                icon.innerText = '▲';
+            }
+        }
+
+        function initPhotoAlbumFeature() {
+            updateAlbumStatusUI();
+            renderAlbumExplorer(albumDriveFolderId);
+
+            getEl('openAlbumBtn').onclick = async () => {
+                if (!albumFolderId) return;
+                toggleDrawer(false); 
+                 
+                const gridContainer = getEl('albumGridContainer');
+                gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-400 text-sm">📂 写真データを取得中...</div>';
+                getEl('albumCountLabel').innerText = "";
+
+                const m = getEl('albumModal');
+                m.classList.remove('hidden');
+                requestAnimationFrame(() => m.classList.remove('opacity-0'));
+
+                try {
+                    const res = await fetchFromGas("list", { folderId: albumFolderId });
+                    const files = res.files || [];
+                     
+                    albumImages = files.filter(f => {
+    const mt = f.mimeType ? f.mimeType.toLowerCase() : '';
+    // heic, heif および、万が一判定が漏れた画像形式もすべて許可する
+    return mt === 'image/jpeg' || 
+           mt === 'image/png' || 
+           mt === 'image/gif' || 
+           mt === 'image/webp' || 
+           mt === 'image/heic' || 
+           mt === 'image/heif' || 
+           mt.startsWith('image/');
+});
+
+                    if (albumImages.length === 0) {
+                        gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-500 text-sm">📷 フォルダ内に画像ファイルが見つかりません</div>';
+                        return;
+                    }
+
+                    getEl('albumCountLabel').innerText = `${albumImages.length} 枚`;
+                    gridContainer.innerHTML = '';
+
+                    albumImages.forEach((img, idx) => {
+                        const card = document.createElement('div');
+                        card.className = "relative aspect-square w-full bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700/50 cursor-pointer hover:border-zinc-500 transition group select-none";
+                        card.innerHTML = `
+                            <div class="absolute inset-0 flex items-center justify-center text-[10px] text-zinc-500 group-hover:text-zinc-400">Loading...</div>
+                            <img data-id="${img.id}" class="w-full h-full object-cover relative z-10 opacity-0 transition-opacity duration-300" alt="photo">
+                        `;
+                         
+                        gridContainer.appendChild(card);
+
+                        fetchFromGas("getFile", { fileId: img.id }).then(resData => {
+                            const imgEl = card.querySelector('img');
+                            if (imgEl) {
+                                imgEl.src = `data:${resData.mimeType};base64,${resData.content}`;
+                                imgEl.classList.remove('opacity-0');
+                            }
+                        }).catch(e => {
+                            console.error("アルバム画像の個別取得に失敗:", e);
+                            card.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-[10px] text-red-500">Error</div>';
+                        });
+
+                        card.onclick = () => openLightbox(idx);
+                    });
+
+                } catch (err) {
+                    console.error("アルバム読み込みエラー:", err);
+                    gridContainer.innerHTML = '<div class="col-span-full py-20 text-center text-red-500 text-sm">⚠️ 写真一覧の取得に失敗しました</div>';
+                }
+            };
+
+            getEl('closeAlbumModalBtn').onclick = () => {
+                const m = getEl('albumModal');
+                m.classList.add('opacity-0');
+                setTimeout(() => m.classList.add('hidden'), 300);
+            };
+
+            getEl('closeLightboxBtn').onclick = closeLightbox;
+            getEl('prevLightboxBtn').onclick = () => navigateLightbox(-1);
+            getEl('nextLightboxBtn').onclick = () => navigateLightbox(1);
+
+            document.addEventListener('keydown', (e) => {
+                const lightbox = getEl('lightboxModal');
+                if (lightbox && !lightbox.classList.contains('hidden')) {
+                    if (e.key === 'Escape') closeLightbox();
+                    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+                    if (e.key === 'ArrowRight') navigateLightbox(1);
+                }
+            });
+
+            const swipeZone = getEl('lightboxSwipeZone');
+            const track = getEl('lightboxCarouselTrack');
+             
+            swipeZone.addEventListener('touchstart', (e) => {
+                if (albumImages.length <= 1) return;
+                isCarouselDragging = true;
+                carouselStartX = e.changedTouches[0].clientX;
+                carouselTrackWidth = swipeZone.clientWidth;
+                track.style.transition = 'none';
+            }, { passive: true });
+
+            swipeZone.addEventListener('touchmove', (e) => {
+                if (!isCarouselDragging) return;
+                carouselCurrentX = e.changedTouches[0].clientX;
+                const deltaX = carouselCurrentX - carouselStartX;
+                 
+                const baseOffset = -carouselTrackWidth;
+                const currentOffset = baseOffset + deltaX;
+                track.style.transform = `translateX(${currentOffset}px)`;
+            }, { passive: true });
+
+            swipeZone.addEventListener('touchend', (e) => {
+                if (!isCarouselDragging) return;
+                isCarouselDragging = false;
+                const deltaX = e.changedTouches[0].clientX - carouselStartX;
+                const threshold = 60; 
+
+                track.style.transition = 'transform 0.25s ease-out';
+
+                if (deltaX < -threshold) {
+                    track.style.transform = `translateX(${-carouselTrackWidth * 2}px)`;
+                    setTimeout(() => {
+                        currentLightboxIndex = (currentLightboxIndex + 1) % albumImages.length;
+                        renderLightboxImage();
+                    }, 250);
+                } else if (deltaX > threshold) {
+                    track.style.transform = 'translateX(0px)';
+                    setTimeout(() => {
+                        currentLightboxIndex = (currentLightboxIndex - 1 + albumImages.length) % albumImages.length;
+                        renderLightboxImage();
+                    }, 250);
+                } else {
+                    track.style.transform = `translateX(${-carouselTrackWidth}px)`;
+                }
+            }, { passive: true });
+        }
+
+        async function renderAlbumExplorer(folderId) {
+            albumDriveFolderId = folderId;
+            const el = getEl('albumExplorerList');
+            if (el) el.innerHTML = '<p class="text-gray-400 text-center py-4">📂 読み込み中...</p>';
+            updateAlbumBreadcrumb();
+            try {
+                const res = await fetchFromGas("list", { folderId: folderId });
+                const files = res.files || [];
+                if (el) el.innerHTML = '';
+
+                const folders = files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+                if (folders.length === 0 && el) {
+                    el.innerHTML = '<p class="text-gray-400 text-center py-4">📁 子フォルダが見つかりません</p>';
+                }
+
+                folders.forEach(file => {
+                    const item = document.createElement('div');
+                    item.className = 'p-2.5 hover:bg-gray-50 flex items-center justify-between cursor-pointer transition select-none';
+                    item.innerHTML = `<span class="font-medium text-gray-700 truncate flex-1">📁 ${file.name}</span>`;
+                    item.onclick = () => {
+                        // 【完全自動同期化】フォルダの中に入った時点で即座にその階層の情報を永続化して連携フォルダとして確定
+                        albumFolderId = file.id;
+                        albumFolderName = file.name;
+                        localStorage.setItem('album_folder_id', albumFolderId);
+                        localStorage.setItem('album_folder_name', albumFolderName);
+                        updateAlbumStatusUI();
+
+                        albumFolderHistory.push({ id: file.id, name: file.name });
+                        renderAlbumExplorer(file.id);
+                    };
+                    if (el) el.appendChild(item);
+                });
+            } catch (err) {
+                console.error("アルバム用ドライブ探索エラー:", err);
+                if (el) el.innerHTML = '<p class="text-red-500 text-center py-4">⚠️ 通信または認証エラーが発生しました</p>';
+            }
+        }
+
+        function updateAlbumBreadcrumb() {
+            const bc = getEl('albumBreadcrumb');
+            if (!bc) return; bc.innerHTML = '';
+            albumFolderHistory.forEach((f, idx) => {
+                if (idx > 0) { const arrow = document.createElement('span'); arrow.className = 'mx-1 text-gray-300'; arrow.innerText = '>'; bc.appendChild(arrow); }
+                const node = document.createElement('span'); const isLast = (idx === albumFolderHistory.length - 1);
+                node.className = isLast ? 'font-bold text-gray-800' : 'text-blue-600 hover:underline cursor-pointer'; node.innerText = f.name;
+                if (!isLast) {
+                    node.onclick = () => {
+                        albumFolderHistory = albumFolderHistory.slice(0, idx + 1);
+                        
+                        // パンくずリストで上の階層に戻った場合も、その戻り先の階層を新しい連携先として自動設定
+                        albumFolderId = f.id === 'root' ? '' : f.id;
+                        albumFolderName = f.id === 'root' ? '' : f.name;
+                        if (albumFolderId) {
+                            localStorage.setItem('album_folder_id', albumFolderId);
+                            localStorage.setItem('album_folder_name', albumFolderName);
+                        } else {
+                            localStorage.removeItem('album_folder_id');
+                            localStorage.removeItem('album_folder_name');
+                        }
+                        updateAlbumStatusUI();
+                        
+                        renderAlbumExplorer(f.id);
+                    };
+                } bc.appendChild(node);
+            });
+        }
+
+        function updateAlbumStatusUI() {
+            if (albumFolderId) {
+                getEl('albumTargetStatus').innerText = `アルバムフォルダ: ${albumFolderName || '設定済み'}`;
+                getEl('albumTargetStatus').classList.remove('text-gray-500');
+                getEl('albumTargetStatus').classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+                getEl('openAlbumBtn').classList.remove('hidden');
+            } else {
+                getEl('albumTargetStatus').innerText = "アルバムフォルダ: 未設定";
+                getEl('albumTargetStatus').className = "text-[11px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-200 break-all";
+                getEl('openAlbumBtn').classList.add('hidden');
+            }
+        }
+
+        async function openLightbox(index) {
+            currentLightboxIndex = index;
+            const lightbox = getEl('lightboxModal');
+            lightbox.classList.remove('hidden');
+            requestAnimationFrame(() => lightbox.classList.remove('opacity-0'));
+             
+            // モーダル表示が確定し、横幅（clientWidth）が正常に取得できるようになるまで100ms遅延させて実行
+            setTimeout(() => {
+                renderLightboxImage();
+            }, 100);
+        }
+
+        function closeLightbox() {
+            const lightbox = getEl('lightboxModal');
+            lightbox.classList.add('opacity-0');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                getEl('carouselSlideLeft').innerHTML = "";
+                getEl('carouselSlideCenter').innerHTML = "";
+                getEl('carouselSlideRight').innerHTML = "";
+            }, 200);
+        }
+
+        function navigateLightbox(direction) {
+            if (albumImages.length <= 1) return;
+            const track = getEl('lightboxCarouselTrack');
+             
+            track.style.transition = 'transform 0.25s ease-out';
+            if (direction === 1) {
+                track.style.transform = 'translateX(-200vw)';
+            } else {
+                track.style.transform = 'translateX(0vw)';
+            }
+
+            setTimeout(() => {
+                currentLightboxIndex = (currentLightboxIndex + direction + albumImages.length) % albumImages.length;
+                renderLightboxImage();
+            }, 250);
+        }
+
+        async function renderLightboxImage() {
+            if (albumImages.length === 0) return;
+
+            const track = getEl('lightboxCarouselTrack');
+
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(-100vw)';
+
+            const total = albumImages.length;
+            const idxLeft = (currentLightboxIndex - 1 + total) % total;
+            const idxCenter = currentLightboxIndex;
+            const idxRight = (currentLightboxIndex + 1) % total;
+
+            getEl('lightboxFilename').innerText = `(${currentLightboxIndex + 1} / ${total}) ${albumImages[idxCenter].name}`;
+
+            const sLeft = getEl('carouselSlideLeft');
+            const sCenter = getEl('carouselSlideCenter');
+            const sRight = getEl('carouselSlideRight');
+
+            sLeft.innerHTML = '';
+            sCenter.innerHTML = '';
+            sRight.innerHTML = '';
+
+            setupSlideImage(sCenter, albumImages[idxCenter]);
+            if (total > 1) {
+                setupSlideImage(sLeft, albumImages[idxLeft]);
+                setupSlideImage(sRight, albumImages[idxRight]);
+            }
+        }
+
+        function setupSlideImage(container, imgInfo) {
+            const imgEl = document.createElement('img');
+            imgEl.className = "max-w-full max-h-[85vh] w-full object-contain shadow-2xl transition-opacity duration-200 pointer-events-none opacity-0";
+            imgEl.alt = "拡大写真";
+
+            const cachedGridImg = getEl('albumGridContainer').querySelector(`img[data-id="${imgInfo.id}"]`);
+            const cachedSrc = cachedGridImg ? cachedGridImg.getAttribute('src') : null;
+
+            if (cachedSrc && cachedSrc.startsWith('data:')) {
+                imgEl.src = cachedSrc;
+                imgEl.classList.remove('opacity-0');
+                container.appendChild(imgEl);
+            } else {
+                container.appendChild(imgEl);
+                fetchFromGas("getFile", { fileId: imgInfo.id }).then(resData => {
+                    imgEl.src = `data:${resData.mimeType};base64,${resData.content}`;
+                    imgEl.classList.remove('opacity-0');
+                }).catch(e => console.error("ライトボックスカルーセル画像の読み込み失敗:", e));
+            }
+        }
+    </script>
+</body>
+</html>
